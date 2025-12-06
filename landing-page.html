@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سياسات وإجراءات — شركة البيان للاستشارات | منصة احترافية لإدارة السياسات والإجراءات</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="منصة احترافية لإدارة السياسات والإجراءات وبناء الحوكمة المؤسسية. تصميم استشاري فخم، رؤية عربية-إنجليزية، ذكاء تشغيلي. شركة البيان للاستشارات">
+    <meta name="keywords" content="سياسات، إجراءات، حوكمة، استشارات، إدارة، منصة، عربي، إنجليزي، SLA، تقارير، مشاريع">
+    <meta name="author" content="شركة البيان للاستشارات">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="سياسات وإجراءات — شركة البيان للاستشارات">
+    <meta property="og:description" content="منصة احترافية لإدارة السياسات والإجراءات وبناء الحوكمة المؤسسية">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ar_SA">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="سياسات وإجراءات — شركة البيان للاستشارات">
+    <meta name="twitter:description" content="منصة احترافية لإدارة السياسات والإجراءات وبناء الحوكمة المؤسسية">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#0A1E39',
+                        royal: '#1B4FFF',
+                        softgray: '#F0F3F7',
+                        gold: '#D6AF71'
+                    },
+                    fontFamily: {
+                        'arabic': ['Tajawal', 'Cairo', 'system-ui', 'sans-serif'],
+                        'english': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&family=Cairo:wght@200;300;400;500;600;700;800;900&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        body { font-family: 'Tajawal', 'Cairo', system-ui, sans-serif; }
+        .gradient-hero { background: linear-gradient(135deg, #0A1E39 0%, #1B4FFF 100%); }
+        .glass-effect { backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1); }
+        .soft-shadow { box-shadow: 0 10px 30px -10px rgba(27, 79, 255, 0.3); }
+        .hover-lift { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .hover-lift:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -15px rgba(27, 79, 255, 0.4); }
+        .rtl-ready { direction: rtl; }
+        .ltr-ready { direction: ltr; }
+        
+        /* Animation Classes */
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+        .slide-up { animation: slideUp 0.8s ease-out; }
+        .scale-in { animation: scaleIn 0.5s ease-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        /* Progress Bar Styles */
+        .progress-bar {
+            background: linear-gradient(90deg, #1B4FFF 0%, #D6AF71 100%);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #1B4FFF; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #0A1E39; }
+    </style>
+</head>
+<body class="rtl-ready">
+    <!-- Sticky Header -->
+    <header class="sticky top-0 z-50 glass-effect border-b border-white/20">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo and Brand -->
+                <div class="flex items-center gap-4">
+                    <!-- Arabic Square Logo -->
+                    <div class="w-12 h-12 bg-gradient-to-br from-royal to-gold rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-xl">ب</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-navy">شركة البيان للاستشارات</h1>
+                        <p class="text-sm text-gray-600">سياسات وإجراءات — حلول احترافية</p>
+                    </div>
+                </div>
+                
+                <!-- Navigation Links -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="#features" class="text-navy hover:text-royal transition-colors">الميزات</a>
+                    <a href="#preview" class="text-navy hover:text-royal transition-colors">استعراض</a>
+                    <a href="#workflow" class="text-navy hover:text-royal transition-colors">سير العمل</a>
+                    <a href="#pricing" class="text-navy hover:text-royal transition-colors">الأسعار</a>
+                    <a href="#contact" class="text-navy hover:text-royal transition-colors">تواصل</a>
+                </nav>
+                
+                <!-- CTA Buttons -->
+                <div class="flex items-center gap-3">
+                    <button onclick="window.open('https://policies-procedures-platform-v7-5-2-2.lovable.app/', '_blank')" 
+                            class="px-6 py-2 bg-royal text-white rounded-lg hover:bg-navy transition-colors soft-shadow">
+                        استعراض المنصة
+                    </button>
+                    <button onclick="scrollToContact()" 
+                            class="px-6 py-2 border border-royal text-royal rounded-lg hover:bg-royal hover:text-white transition-colors">
+                        طلب عرض تجريبي
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="gradient-hero py-20 relative overflow-hidden">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10">
+            <div class="absolute top-20 right-20 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+            <div class="absolute bottom-20 left-20 w-48 h-48 bg-gold rounded-full blur-2xl"></div>
+        </div>
+        
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <!-- Hero Content -->
+                <div class="text-white fade-in">
+                    <h1 class="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                        منصة احترافية لإدارة
+                        <span class="text-gold">السياسات والإجراءات</span>
+                        وبناء الحوكمة المؤسسية
+                    </h1>
+                    
+                    <p class="text-xl mb-8 text-white/90 leading-relaxed">
+                        تصميم استشاري فخم… رؤية عربية–إنجليزية… ذكاء تشغيلي
+                    </p>
+                    
+                    <!-- CTA Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                        <button onclick="window.open('https://policies-procedures-platform-v7-5-2-2.lovable.app/', '_blank')" 
+                                class="px-8 py-4 bg-white text-navy rounded-lg font-semibold hover:bg-softgray transition-colors soft-shadow hover-lift">
+                            ابدأ بالاستكشاف
+                        </button>
+                        <button onclick="scrollToContact()" 
+                                class="px-8 py-4 border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-navy transition-colors">
+                            تواصل معنا
+                        </button>
+                    </div>
+                    
+                    <!-- Highlights -->
+                    <div class="flex flex-wrap gap-6 text-sm">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-gold rounded-full"></div>
+                            <span>جاهزية مؤسسية</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-gold rounded-full"></div>
+                            <span>RTL/LTR</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-gold rounded-full"></div>
+                            <span>قابل للتوسّع</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dashboard Mockup -->
+                <div class="slide-up">
+                    <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 soft-shadow">
+                        <!-- Mockup Header -->
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-3 h-3 bg-red-400 rounded-full"></div>
+                            <div class="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                            <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                            <div class="flex-1 bg-white/20 rounded-full h-6 flex items-center px-3">
+                                <span class="text-white/70 text-sm">policies-platform.com</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Dashboard Cards -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="bg-white/20 rounded-lg p-4">
+                                <div class="text-white/90 text-sm mb-1">مشاريع</div>
+                                <div class="text-white text-2xl font-bold">12</div>
+                                <div class="text-green-300 text-xs">قيد التنفيذ</div>
+                            </div>
+                            <div class="bg-white/20 rounded-lg p-4">
+                                <div class="text-white/90 text-sm mb-1">مكتمل</div>
+                                <div class="text-white text-2xl font-bold">8</div>
+                                <div class="text-blue-300 text-xs">هذا الشهر</div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-white/15 rounded-lg p-3 text-center">
+                                <div class="text-white text-lg font-bold">45</div>
+                                <div class="text-white/70 text-xs">مهام</div>
+                            </div>
+                            <div class="bg-white/15 rounded-lg p-3 text-center">
+                                <div class="text-white text-lg font-bold">23</div>
+                                <div class="text-white/70 text-xs">مخرجات</div>
+                            </div>
+                            <div class="bg-white/15 rounded-lg p-3 text-center">
+                                <div class="text-white text-lg font-bold">7</div>
+                                <div class="text-white/70 text-xs">تذاكر</div>
+                            </div>
+                        </div>
+                        
+                        <!-- SLA Alerts -->
+                        <div class="mt-4 bg-yellow-500/20 border border-yellow-400/30 rounded-lg p-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                                <span class="text-white/90 text-sm">تنبيهات SLA</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section id="features" class="py-20 bg-softgray">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 fade-in">
+                <h2 class="text-4xl font-bold text-navy mb-4">ميزات المنصة الاحترافية</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    حلول متكاملة لإدارة السياسات والإجراءات مع أحدث التقنيات والمعايير العالمية
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1: Interactive Policy Editor -->
+                <div class="bg-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="w-16 h-16 bg-gradient-to-br from-royal to-navy rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy mb-4">محرر سياسات تفاعلي</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        محرر متقدم يدعم التنسيق الغني والتعاون المباشر مع إمكانيات المراجعة والاعتماد المتدرج
+                    </p>
+                </div>
+                
+                <!-- Feature 2: Organizational Deliverables Tree -->
+                <div class="bg-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="w-16 h-16 bg-gradient-to-br from-gold to-royal rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy mb-4">شجرة مخرجات مؤسسية</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        تنظيم هرمي ذكي للأدلة والسياسات والإجراءات مع إمكانيات البحث والتصفية المتقدمة
+                    </p>
+                </div>
+                
+                <!-- Feature 3: SLA and Timeline -->
+                <div class="bg-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="w-16 h-16 bg-gradient-to-br from-navy to-gold rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy mb-4">SLA وTimeline</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        متابعة دقيقة للمواعيد النهائية مع تنبيهات ذكية وتقارير أداء شاملة
+                    </p>
+                </div>
+                
+                <!-- Feature 4: Task and Ticket Management -->
+                <div class="bg-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="w-16 h-16 bg-gradient-to-br from-royal to-gold rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy mb-4">إدارة مهام وتذاكر</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        نظام متكامل لإدارة المهام والطلبات مع تتبع الحالة والأولويات
+                    </p>
+                </div>
+                
+                <!-- Feature 5: Precise Permissions -->
+                <div class="bg-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="w-16 h-16 bg-gradient-to-br from-gold to-navy rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy mb-4">صلاحيات دقيقة</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        نظام صلاحيات متقدم يضمن الأمان والخصوصية مع تحكم دقيق في الوصول
+                    </p>
+                </div>
+                
+                <!-- Feature 6: Dashboards and Reports -->
+                <div class="bg-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="w-16 h-16 bg-gradient-to-br from-navy to-royal rounded-xl flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy mb-4">لوحات وتقارير</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        تحليلات شاملة ولوحات تحكم تفاعلية لمتابعة الأداء واتخاذ القرارات
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Platform Preview -->
+    <section id="preview" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 fade-in">
+                <h2 class="text-4xl font-bold text-navy mb-4">استعراض المنصة</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    تجربة مستخدم متميزة مع واجهات حديثة وسهولة في الاستخدام
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Dashboard View -->
+                <div class="bg-gradient-to-br from-softgray to-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="bg-navy rounded-xl p-6 mb-6">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="bg-white/20 rounded-lg p-3">
+                                <div class="text-white/70 text-sm">المشاريع</div>
+                                <div class="text-white text-xl font-bold">12</div>
+                            </div>
+                            <div class="bg-white/20 rounded-lg p-3">
+                                <div class="text-white/70 text-sm">المهام</div>
+                                <div class="text-white text-xl font-bold">45</div>
+                            </div>
+                        </div>
+                        <div class="bg-white/10 rounded-lg p-2">
+                            <div class="progress-bar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy mb-3">لوحة التحكم</h3>
+                    <p class="text-gray-600">
+                        نظرة شاملة على جميع المشاريع والمهام مع مؤشرات الأداء الرئيسية
+                    </p>
+                </div>
+                
+                <!-- Deliverables Tree -->
+                <div class="bg-gradient-to-br from-softgray to-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="bg-royal rounded-xl p-6 mb-6">
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-white rounded-full"></div>
+                                <div class="text-white text-sm">دليل الموارد البشرية</div>
+                            </div>
+                            <div class="flex items-center gap-2 mr-4">
+                                <div class="w-2 h-2 bg-gold rounded-full"></div>
+                                <div class="text-white/80 text-sm">سياسة الإجازات</div>
+                            </div>
+                            <div class="flex items-center gap-2 mr-4">
+                                <div class="w-2 h-2 bg-gold rounded-full"></div>
+                                <div class="text-white/80 text-sm">إجراءات التوظيف</div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy mb-3">شجرة المخرجات</h3>
+                    <p class="text-gray-600">
+                        تنظيم هرمي للأدلة والسياسات مع إمكانيات البحث والتصفية
+                    </p>
+                </div>
+                
+                <!-- Tickets & Communication -->
+                <div class="bg-gradient-to-br from-softgray to-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="bg-gold rounded-xl p-6 mb-6">
+                        <div class="space-y-3">
+                            <div class="bg-white/20 rounded-lg p-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-white text-sm">طلب تعديل سياسة</div>
+                                    <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                                </div>
+                            </div>
+                            <div class="bg-white/20 rounded-lg p-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-white text-sm">استفسار حول إجراء</div>
+                                    <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-navy mb-3">التذاكر والتواصل</h3>
+                    <p class="text-gray-600">
+                        نظام متكامل لإدارة الطلبات والاستفسارات مع متابعة الحالة
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workflow / Approvals -->
+    <section id="workflow" class="py-20 bg-gradient-to-br from-navy to-royal">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 fade-in">
+                <h2 class="text-4xl font-bold text-white mb-4">سير العمل والاعتمادات</h2>
+                <p class="text-xl text-white/90 max-w-3xl mx-auto">
+                    عملية منظمة ومتدرجة لضمان جودة المحتوى والامتثال للمعايير
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Step 1: Draft Setup -->
+                <div class="text-center slide-up">
+                    <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 soft-shadow">
+                        <span class="text-white text-2xl font-bold">1</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">إعداد المسودة</h3>
+                    <p class="text-white/80 leading-relaxed">
+                        إنشاء وتحرير المحتوى الأولي مع الأدوات التفاعلية المتقدمة
+                    </p>
+                </div>
+                
+                <!-- Step 2: Specialist Review -->
+                <div class="text-center slide-up">
+                    <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 soft-shadow">
+                        <span class="text-white text-2xl font-bold">2</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">مراجعة المختص</h3>
+                    <p class="text-white/80 leading-relaxed">
+                        مراجعة فنية متخصصة للتأكد من دقة المحتوى والامتثال
+                    </p>
+                </div>
+                
+                <!-- Step 3: Approval Review -->
+                <div class="text-center slide-up">
+                    <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 soft-shadow">
+                        <span class="text-white text-2xl font-bold">3</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">مراجعة الاعتمادات</h3>
+                    <p class="text-white/80 leading-relaxed">
+                        اعتماد نهائي من الجهات المختصة قبل النشر والتطبيق
+                    </p>
+                </div>
+                
+                <!-- Step 4: Publishing and Archiving -->
+                <div class="text-center slide-up">
+                    <div class="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 soft-shadow">
+                        <span class="text-white text-2xl font-bold">4</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-4">الإصدار والأرشفة</h3>
+                    <p class="text-white/80 leading-relaxed">
+                        نشر المحتوى المعتمد مع الأرشفة الآمنة وإدارة الإصدارات
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Plans -->
+    <section id="pricing" class="py-20 bg-softgray">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 fade-in">
+                <h2 class="text-4xl font-bold text-navy mb-4">خطط الاشتراك</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    اختر الخطة المناسبة لاحتياجات مؤسستك مع مرونة في التطوير والتوسع
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <!-- Starter Plan -->
+                <div class="bg-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="text-center mb-8">
+                        <h3 class="text-2xl font-bold text-navy mb-2">البداية</h3>
+                        <p class="text-gray-600 mb-6">للمؤسسات الصغيرة</p>
+                        <div class="text-4xl font-bold text-navy mb-2">
+                            ٢٩٩ <span class="text-lg text-gray-500">ر.س/شهر</span>
+                        </div>
+                        <p class="text-sm text-gray-500">أو ٢٩٩٠ ر.س سنوياً</p>
+                    </div>
+                    
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">حتى 5 مستخدمين</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">3 مشاريع نشطة</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">تخزين 10 جيجا</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">دعم فني أساسي</span>
+                        </li>
+                    </ul>
+                    
+                    <button onclick="scrollToContact()" class="w-full py-3 border-2 border-royal text-royal rounded-lg font-semibold hover:bg-royal hover:text-white transition-colors">
+                        ابدأ الآن
+                    </button>
+                </div>
+                
+                <!-- Pro Plan -->
+                <div class="bg-gradient-to-br from-royal to-navy rounded-2xl p-8 soft-shadow hover-lift scale-in relative">
+                    <!-- Popular Badge -->
+                    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                        <div class="bg-gold text-white px-6 py-2 rounded-full text-sm font-semibold">
+                            الأكثر شعبية
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mb-8 text-white">
+                        <h3 class="text-2xl font-bold mb-2">الاحترافية</h3>
+                        <p class="text-white/80 mb-6">للمؤسسات المتوسطة</p>
+                        <div class="text-4xl font-bold mb-2">
+                            ٧٩٩ <span class="text-lg text-white/70">ر.س/شهر</span>
+                        </div>
+                        <p class="text-sm text-white/70">أو ٧٩٩٠ ر.س سنوياً</p>
+                    </div>
+                    
+                    <ul class="space-y-4 mb-8 text-white">
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-gold rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span>حتى 25 مستخدم</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-gold rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span>مشاريع غير محدودة</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-gold rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span>تخزين 100 جيجا</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-gold rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span>تقارير متقدمة</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-gold rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span>دعم فني متقدم</span>
+                        </li>
+                    </ul>
+                    
+                    <button onclick="scrollToContact()" class="w-full py-3 bg-white text-navy rounded-lg font-semibold hover:bg-softgray transition-colors">
+                        ابدأ الآن
+                    </button>
+                </div>
+                
+                <!-- Enterprise Plan -->
+                <div class="bg-white rounded-2xl p-8 soft-shadow hover-lift scale-in">
+                    <div class="text-center mb-8">
+                        <h3 class="text-2xl font-bold text-navy mb-2">المؤسسية</h3>
+                        <p class="text-gray-600 mb-6">للمؤسسات الكبيرة</p>
+                        <div class="text-4xl font-bold text-navy mb-2">
+                            مخصص
+                        </div>
+                        <p class="text-sm text-gray-500">حسب الاحتياجات</p>
+                    </div>
+                    
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">مستخدمين غير محدود</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">تخصيص كامل</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">تكامل API</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">دعم مخصص 24/7</span>
+                        </li>
+                    </ul>
+                    
+                    <button onclick="scrollToContact()" class="w-full py-3 bg-navy text-white rounded-lg font-semibold hover:bg-royal transition-colors">
+                        تواصل معنا
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact + Form -->
+    <section id="contact" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 fade-in">
+                <h2 class="text-4xl font-bold text-navy mb-4">تواصل معنا</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    نحن هنا لمساعدتك في بناء منصة السياسات والإجراءات المثالية لمؤسستك
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+                <!-- Contact Information -->
+                <div class="slide-up">
+                    <h3 class="text-2xl font-bold text-navy mb-8">معلومات التواصل</h3>
+                    
+                    <div class="space-y-6">
+                        <!-- Email -->
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-royal rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-navy">البريد الإلكتروني</p>
+                                <p class="text-gray-600">info@albayan-consulting.com</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Phone -->
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gold rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-navy">الهاتف</p>
+                                <p class="text-gray-600">+966 11 234 5678</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Address -->
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 bg-navy rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-navy">العنوان</p>
+                                <p class="text-gray-600">الرياض، المملكة العربية السعودية<br>حي الملك فهد، طريق الملك عبدالعزيز</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Social Links -->
+                    <div class="mt-8">
+                        <p class="font-semibold text-navy mb-4">تابعنا على</p>
+                        <div class="flex gap-4">
+                            <a href="#" class="w-10 h-10 bg-royal rounded-lg flex items-center justify-center hover:bg-navy transition-colors">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                                </svg>
+                            </a>
+                            <a href="#" class="w-10 h-10 bg-royal rounded-lg flex items-center justify-center hover:bg-navy transition-colors">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z"/>
+                                </svg>
+                            </a>
+                            <a href="#" class="w-10 h-10 bg-royal rounded-lg flex items-center justify-center hover:bg-navy transition-colors">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contact Form -->
+                <div class="scale-in">
+                    <form class="bg-softgray rounded-2xl p-8 soft-shadow">
+                        <h3 class="text-2xl font-bold text-navy mb-6">أرسل لنا رسالة</h3>
+                        
+                        <div class="space-y-6">
+                            <!-- Name -->
+                            <div>
+                                <label class="block text-sm font-semibold text-navy mb-2">الاسم الكامل</label>
+                                <input type="text" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-royal focus:ring-2 focus:ring-royal/20 outline-none transition-colors" placeholder="أدخل اسمك الكامل">
+                            </div>
+                            
+                            <!-- Email -->
+                            <div>
+                                <label class="block text-sm font-semibold text-navy mb-2">البريد الإلكتروني</label>
+                                <input type="email" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-royal focus:ring-2 focus:ring-royal/20 outline-none transition-colors" placeholder="أدخل بريدك الإلكتروني">
+                            </div>
+                            
+                            <!-- Subject -->
+                            <div>
+                                <label class="block text-sm font-semibold text-navy mb-2">الموضوع</label>
+                                <input type="text" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-royal focus:ring-2 focus:ring-royal/20 outline-none transition-colors" placeholder="موضوع الرسالة">
+                            </div>
+                            
+                            <!-- Message -->
+                            <div>
+                                <label class="block text-sm font-semibold text-navy mb-2">الرسالة</label>
+                                <textarea rows="5" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-royal focus:ring-2 focus:ring-royal/20 outline-none transition-colors resize-none" placeholder="اكتب رسالتك هنا..."></textarea>
+                            </div>
+                            
+                            <!-- Subscribe Checkbox -->
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="subscribe" class="w-5 h-5 text-royal border-gray-300 rounded focus:ring-royal">
+                                <label for="subscribe" class="text-sm text-gray-600">أرغب في الاشتراك في النشرة الإخبارية</label>
+                            </div>
+                            
+                            <!-- Submit Button -->
+                            <button type="submit" class="w-full py-4 bg-gradient-to-r from-royal to-navy text-white rounded-lg font-semibold hover:from-navy hover:to-royal transition-all soft-shadow hover-lift">
+                                إرسال الرسالة
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-navy text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <!-- Company Info -->
+                <div class="md:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-royal to-gold rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold">ب</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold">شركة البيان للاستشارات</h3>
+                            <p class="text-white/70 text-sm">سياسات وإجراءات — حلول احترافية</p>
+                        </div>
+                    </div>
+                    <p class="text-white/80 leading-relaxed mb-4">
+                        نحن متخصصون في تطوير وإدارة السياسات والإجراءات المؤسسية مع أحدث التقنيات والمعايير العالمية. 
+                        نساعد المؤسسات على بناء أنظمة حوكمة فعالة ومتطورة.
+                    </p>
+                    <p class="text-white/60 text-sm">
+                        © 2024 شركة البيان للاستشارات. جميع الحقوق محفوظة.
+                    </p>
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">روابط سريعة</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#features" class="text-white/70 hover:text-white transition-colors">الميزات</a></li>
+                        <li><a href="#preview" class="text-white/70 hover:text-white transition-colors">استعراض المنصة</a></li>
+                        <li><a href="#workflow" class="text-white/70 hover:text-white transition-colors">سير العمل</a></li>
+                        <li><a href="#pricing" class="text-white/70 hover:text-white transition-colors">الأسعار</a></li>
+                        <li><a href="#contact" class="text-white/70 hover:text-white transition-colors">تواصل معنا</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Legal Links -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">الشروط والأحكام</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-white/70 hover:text-white transition-colors">سياسة الخصوصية</a></li>
+                        <li><a href="#" class="text-white/70 hover:text-white transition-colors">شروط الاستخدام</a></li>
+                        <li><a href="#" class="text-white/70 hover:text-white transition-colors">اتفاقية الخدمة</a></li>
+                        <li><a href="#" class="text-white/70 hover:text-white transition-colors">سياسة الاسترداد</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Bottom Bar -->
+            <div class="border-t border-white/20 pt-8">
+                <div class="flex flex-col md:flex-row items-center justify-between">
+                    <p class="text-white/60 text-sm mb-4 md:mb-0">
+                        تم التطوير بواسطة شركة البيان للاستشارات | منصة SaaS متعددة المستأجرين لإدارة السياسات
+                    </p>
+                    <div class="flex items-center gap-4">
+                        <span class="text-white/60 text-sm">نسخة المنصة: v7.5.2.2</span>
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span class="text-green-400 text-sm">متصل</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Smooth scrolling for navigation links
+        function scrollToContact() {
+            document.getElementById('contact').scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }
+        
+        // Add smooth scrolling to all anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        // Observe all animated elements
+        document.querySelectorAll('.fade-in, .slide-up, .scale-in').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+        
+        // Form submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            // Simple validation
+            if (!data.name || !data.email || !data.message) {
+                alert('يرجى ملء جميع الحقول المطلوبة');
+                return;
+            }
+            
+            // Simulate form submission
+            const button = this.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+            button.textContent = 'جاري الإرسال...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                alert('تم إرسال رسالتك بنجاح! سنتواصل معك قريباً.');
+                this.reset();
+                button.textContent = originalText;
+                button.disabled = false;
+            }, 2000);
+        });
+        
+        // Mobile menu toggle (if needed)
+        function toggleMobileMenu() {
+            const nav = document.querySelector('nav');
+            nav.classList.toggle('hidden');
+        }
+        
+        // Add loading animation to platform preview button
+        document.querySelectorAll('button').forEach(button => {
+            if (button.textContent.includes('استعراض المنصة')) {
+                button.addEventListener('click', function() {
+                    const originalText = this.textContent;
+                    this.textContent = 'جاري التحميل...';
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        });
+        
+        // Progress bar animation
+        function animateProgressBars() {
+            const progressBars = document.querySelectorAll('.progress-bar');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 500);
+            });
+        }
+        
+        // Trigger progress bar animation when in view
+        const progressObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateProgressBars();
+                }
+            });
+        });
+        
+        document.querySelectorAll('.progress-bar').forEach(bar => {
+            progressObserver.observe(bar);
+        });
+        
+        // Add hover effects to cards
+        document.querySelectorAll('.hover-lift').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+        
+        console.log('🚀 منصة السياسات والإجراءات v7.5.2.2 - شركة البيان للاستشارات');
+        console.log('📧 للدعم الفني: info@albayan-consulting.com');
+        console.log('🌐 منصة SaaS متعددة المستأجرين جاهزة للإنتاج');
+    </script>
+</body>
+</html>
