@@ -86,31 +86,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      
-      // Simulate sign in
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Determine role based on email for demo purposes
-      let role: UserRole = 'lead_consultant';
-      let organization = 'شركة البيان للاستشارات';
-      
-      if (email === 'lead@consultant.com') {
-        role = 'lead_consultant';
-        organization = 'شركة البيان للاستشارات';
-      } else if (email === 'sub@consultant.com') {
-        role = 'sub_consultant';
-        organization = 'شركة البيان للاستشارات';
-      } else if (email === 'main@client.com') {
-        role = 'main_client';
-        organization = 'شركة التقنية المتقدمة';
-      } else if (email === 'sub@client.com') {
-        role = 'sub_client';
-        organization = 'شركة التقنية المتقدمة';
-      }
+      // --- ADD YOUR BACKEND CALL HERE ---
+      // Example:
+      const response = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+
+      // Save token if your backend returns one
+      localStorage.setItem('accessToken', data.data.refreshToken);
+      console.log(data);
       const mockUser = {
-        id: 'mock-user-id',
-        email,
+        id: data.data.username,
+        email: data.data.email,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         app_metadata: {},
@@ -133,25 +125,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         banned_until: null,
         identities: []
       } as User;
-
+      console.log("User Details :", mockUser)
+      console.log("Role Details :", data.data.role)
+      // Set the user and profile state based on REAL response
       const mockProfile = {
-        id: 'mock-profile-id',
-        user_id: 'mock-user-id',
-        full_name: role === 'lead_consultant' ? 'د. فهد السعدي' : 
-                   role === 'sub_consultant' ? 'محمد رشاد' :
-                   role === 'main_client' ? 'سلطان منصور' : 'المهندس تركي آل نصيب',
-        role,
-        organization,
+        id: data.username,
+        user_id: data.username,
+        full_name: data.username,
+        role: data.data.role,
+        organization: data.organization,
         phone: '+966500000000',
         avatar_url: null,
         is_active: true,
-        permissions: rolePermissions[role]
+        permissions: rolePermissions[data.data.role]
       };
 
       setUser(mockUser);
       setUserProfile(mockProfile);
-      
-      return { data: { user: mockUser }, error: null };
+      return { data: data.user, error: null };
     } catch (error: any) {
       return { data: null, error };
     } finally {
@@ -162,10 +153,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, userData: { full_name: string; role: UserRole; organization: string }) => {
     try {
       setLoading(true);
-      
+
       // Simulate sign up
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       const mockUser = {
         id: 'mock-user-id',
         email,
@@ -206,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(mockUser);
       setUserProfile(mockProfile);
-      
+
       return { data: { user: mockUser }, error: null };
     } catch (error: any) {
       return { data: null, error };
