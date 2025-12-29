@@ -7,11 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Save, Loader2 } from 'lucide-react';
+import { CalendarIcon, Save, Loader2, Calculator } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { api } from '@/lib/api'; // Assuming you have this helper, otherwise I'll use fetch directly
 
 interface EditProjectModalProps {
   isOpen: boolean;
@@ -39,53 +40,55 @@ export function EditProjectModal({ isOpen, onClose, project, onSave }: EditProje
     spent: ''
   });
 
-  // Fetch fresh details when modal opens
+  // Fetch fresh details and tickets when modal opens
   useEffect(() => {
     if (isOpen && project?.id) {
       const fetchDetails = async () => {
         setFetching(true);
         try {
           const token = localStorage.getItem('accessToken');
-          // Important: Verify if your backend uses 'project' (singular) or 'projects' (plural) for GET
-          // Defaulting to singular based on your last request:
-          const response = await fetch(`http://localhost:8080/api/project/${project.id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const headers = { 'Authorization': `Bearer ${token}` };
+
+          // 1. Fetch Project Details
+          const projectRes = await fetch(`http://localhost:8080/api/projects/${project.id}`, { headers });
+          const projectData = projectRes.ok ? await projectRes.json() : project;
+
+          // 2. Fetch Tickets for Progress Calculation
+          let calculatedProgress = projectData.progress || 0;
+          try {
+            const ticketsRes = await fetch(`http://localhost:8080/api/v1/tickets/project/${project.id}`, { headers });
+            if (ticketsRes.ok) {
+              const tickets = await ticketsRes.json();
+              if (Array.isArray(tickets) && tickets.length > 0) {
+                const completedCount = tickets.filter((t: any) =>
+                  ['resolved', 'closed'].includes(t.status?.toLowerCase())
+                ).length;
+                calculatedProgress = Math.round((completedCount / tickets.length) * 100);
+              } else if (Array.isArray(tickets) && tickets.length === 0) {
+                calculatedProgress = 0; // 0 tickets means 0 progress usually, or keep manual if you prefer
+              }
+            }
+          } catch (err) {
+            console.error("Failed to fetch tickets for progress calculation", err);
+          }
+
+          setFormData({
+            title: projectData.name || project.title || '',
+            titleEn: projectData.titleEn || project.titleEn || '',
+            description: projectData.description || '',
+            descriptionEn: projectData.descriptionEn || '',
+            status: projectData.status ? projectData.status.toLowerCase() : 'planning',
+            priority: projectData.priority ? projectData.priority.toLowerCase() : 'medium',
+            progress: calculatedProgress, // Set the calculated value
+            startDate: projectData.startDate ? new Date(projectData.startDate) : undefined,
+            endDate: projectData.endDate ? new Date(projectData.endDate) : undefined,
+            budget: projectData.budget?.toString() || '0',
+            spent: projectData.spent?.toString() || '0'
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            setFormData({
-              title: data.name || project.title || '',
-              titleEn: data.titleEn || project.titleEn || '',
-              description: data.description || '',
-              descriptionEn: data.descriptionEn || '',
-              status: data.status ? data.status.toLowerCase() : 'planning',
-              priority: data.priority ? data.priority.toLowerCase() : 'medium',
-              progress: data.progress || 0,
-              startDate: data.startDate ? new Date(data.startDate) : undefined,
-              endDate: data.endDate ? new Date(data.endDate) : undefined,
-              budget: data.budget?.toString() || '0',
-              spent: data.spent?.toString() || '0'
-            });
-          } else {
-            console.warn("Could not fetch fresh details, using list data");
-            // Fallback to prop data
-            setFormData({
-              title: project.title || '',
-              titleEn: project.titleEn || '',
-              description: project.description || '',
-              descriptionEn: project.descriptionEn || '',
-              status: project.status || 'planning',
-              priority: project.priority || 'medium',
-              progress: project.progress || 0,
-              startDate: project.startDate ? new Date(project.startDate) : undefined,
-              endDate: project.endDate ? new Date(project.endDate) : undefined,
-              budget: project.budget?.toString() || '0',
-              spent: project.spent?.toString() || '0'
-            });
-          }
         } catch (e) {
           console.error(e);
+          toast.error(language === 'ar' ? 'فشل تحميل البيانات' : 'Failed to load data');
         } finally {
           setFetching(false);
         }
@@ -110,14 +113,14 @@ export function EditProjectModal({ isOpen, onClose, project, onSave }: EditProje
         descriptionEn: formData.descriptionEn,
         status: formData.status.toUpperCase(),
         priority: formData.priority.toUpperCase(),
-        progress: formData.progress,
+        progress: formData.progress, // Sending calculated progress back to DB
         budget: parseFloat(formData.budget) || 0,
         spent: parseFloat(formData.spent) || 0,
         startDate: formData.startDate ? format(formData.startDate, 'yyyy-MM-dd') : null,
         endDate: formData.endDate ? format(formData.endDate, 'yyyy-MM-dd') : null,
       };
 
-      const response = await fetch('http://localhost:8080/api/project', {
+      const response = await fetch('http://localhost:8080/api/projects', { // Corrected endpoint to /api/projects based on standard REST
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -196,9 +199,29 @@ export function EditProjectModal({ isOpen, onClose, project, onSave }: EditProje
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* READ ONLY PROGRESS FIELD */}
               <div className="space-y-2">
-                <Label>{language === 'ar' ? 'الإنجاز' : 'Progress'}</Label>
-                <Input type="number" min="0" max="100" value={formData.progress} onChange={e => setFormData({ ...formData, progress: parseInt(e.target.value) })} />
+                <div className="flex justify-between">
+                  <Label>{language === 'ar' ? 'الإنجاز (تلقائي)' : 'Progress (Auto)'}</Label>
+                  <Calculator className="w-3 h-3 text-gray-400" />
+                </div>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={formData.progress}
+                    disabled
+                    className="bg-gray-100 text-gray-500 cursor-not-allowed"
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400 text-sm">
+                    %
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-400">
+                  {language === 'ar'
+                    ? 'يتم الحساب بناءً على التذاكر المكتملة'
+                    : 'Calculated based on resolved/closed tickets'}
+                </p>
               </div>
             </div>
 

@@ -2,7 +2,13 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { useLanguage } from './LanguageContext';
 
-export type UserRole = 'lead_consultant' | 'sub_consultant' | 'main_client' | 'sub_client';
+export type UserRole =
+  | 'super_admin'
+  | 'admin'
+  | 'lead_consultant'
+  | 'sub_consultant'
+  | 'main_client'
+  | 'sub_client';
 
 interface UserProfile {
   id: string;
@@ -27,11 +33,23 @@ interface AuthContextType {
   hasPermission: (permission: string) => boolean;
   canAccessSection: (section: string) => boolean;
 }
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Helper: Define ALL permissions in one place to assign to admins easily
+const ALL_PERMISSIONS = [
+  'projects.create', 'projects.edit', 'projects.delete', 'projects.view',
+  'deliverables.create', 'deliverables.edit', 'deliverables.delete', 'deliverables.view', 'deliverables.approve', 'deliverables.comment',
+  'clients.create', 'clients.edit', 'clients.delete', 'clients.view',
+  'tickets.create', 'tickets.edit', 'tickets.delete', 'tickets.view', 'tickets.respond',
+  'reports.view', 'reports.export',
+  'users.create', 'users.edit', 'users.delete', 'users.view',
+  'settings.edit'
+];
 
-// Role-based permissions
+// 2. UPDATE: Add permissions for super_admin and admin
 const rolePermissions: Record<UserRole, string[]> = {
+  super_admin: ALL_PERMISSIONS,
+  admin: ALL_PERMISSIONS, // Admin has full permissions (scope limited by backend usually)
   lead_consultant: [
     'projects.create', 'projects.edit', 'projects.delete', 'projects.view',
     'deliverables.create', 'deliverables.edit', 'deliverables.delete', 'deliverables.view', 'deliverables.approve',
@@ -60,8 +78,10 @@ const rolePermissions: Record<UserRole, string[]> = {
   ]
 };
 
-// Section access based on roles
+// 3. UPDATE: Grant access to all sections for super_admin and admin
 const sectionAccess: Record<UserRole, string[]> = {
+  super_admin: ['dashboard', 'projects', 'deliverables', 'clients', 'tickets', 'reports', 'users', 'settings'],
+  admin: ['dashboard', 'projects', 'deliverables', 'clients', 'tickets', 'reports', 'users', 'settings'],
   lead_consultant: ['dashboard', 'projects', 'deliverables', 'clients', 'tickets', 'reports', 'users', 'settings'],
   sub_consultant: ['dashboard', 'projects', 'deliverables', 'tickets', 'reports'],
   main_client: ['dashboard', 'projects', 'deliverables', 'tickets', 'reports'],

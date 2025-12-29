@@ -1,5 +1,7 @@
 // أنواع البيانات لمنصة إدارة السياسات والإجراءات
-export type UserRole = 
+export type UserRole =
+  | 'super_admin'       // Added
+  | 'admin'             // Added
   | 'system_admin'
   | 'project_manager'
   | 'consultant'
@@ -9,52 +11,54 @@ export type UserRole =
   | 'policy_reviewer'
   | 'quality_monitor';
 
-export type ProjectStatus = 
+export type ProjectStatus =
   | 'planning'
   | 'active'
   | 'on_hold'
   | 'completed'
   | 'cancelled';
 
-export type TaskStatus = 
+export type TaskStatus =
   | 'not_started'
   | 'in_progress'
   | 'review'
   | 'completed'
   | 'blocked';
 
-export type TaskPriority = 
+export type TaskPriority =
   | 'low'
   | 'medium'
   | 'high'
   | 'critical';
 
-export type DeliverableType = 
+export type DeliverableType =
   | 'guide'
   | 'topic'
   | 'policy'
   | 'procedure'
   | 'template';
 
-export type TicketStatus = 
+export type TicketStatus =
   | 'open'
   | 'in_progress'
   | 'waiting_response'
+  | 'for_review'        // Added for approval workflow
+  | 'redo'              // Added for rejection workflow
   | 'resolved'
   | 'closed';
 
-export type TicketPriority = 
+export type TicketPriority =
   | 'low'
   | 'medium'
   | 'high'
   | 'urgent';
 
-export type SLAStatus = 
+export type SLAStatus =
   | 'on_track'
   | 'at_risk'
   | 'overdue';
 
-export type SubscriptionPlan = 
+export type SubscriptionPlan =
   | 'basic'
   | 'professional'
   | 'enterprise'
@@ -113,6 +117,7 @@ export interface ProjectMember {
 export interface Task {
   id: string;
   project_id: string;
+  ticket_id: string | null; // Added to link task to a ticket
   title: string;
   description: string | null;
   assigned_to: string | null;
@@ -212,6 +217,20 @@ export interface Notification {
   is_read: boolean;
   is_email_sent: boolean;
   created_at: string;
+}
+
+export interface UserDTO {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  department?: string;
+  jobTitle?: string;
+  avatarUrl?: string;
+  isActive: boolean;
+  roles: string[];
 }
 
 export interface AuditLog {

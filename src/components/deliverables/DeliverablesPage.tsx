@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CreateDeliverableModal } from './CreateDeliverableModal';
 import { DeliverableViewer } from './DeliverableViewer';
-import { 
-  Plus, 
-  Search, 
-  FolderTree, 
+import {
+  Plus,
+  Search,
+  FolderTree,
   ChevronRight,
   ChevronDown,
   File,
@@ -146,7 +146,7 @@ export function DeliverablesPage() {
 
     const config = statusConfig[status as keyof typeof statusConfig] || { label: status, color: 'bg-gray-100 text-gray-800', icon: FileX };
     const Icon = config.icon;
-    
+
     return (
       <Badge variant="outline" className={`${config.color} flex items-center gap-1`}>
         <Icon className="w-3 h-3" />
@@ -189,7 +189,7 @@ export function DeliverablesPage() {
                     )}
                   </Button>
                 )}
-                
+
                 <div className="flex-shrink-0">
                   {getTypeIcon(node.type)}
                 </div>
@@ -204,13 +204,13 @@ export function DeliverablesPage() {
                       v{node.version}
                     </Badge>
                   </div>
-                  
+
                   {node.description && (
                     <p className="text-xs text-gray-600 mb-2 line-clamp-2">
                       {dir === 'rtl' ? node.description : node.descriptionEn}
                     </p>
                   )}
-                  
+
                   <div className="flex items-center gap-4 text-xs text-gray-500">
                     <span>{node.author.name}</span>
                     <span>{node.lastModified}</span>
@@ -231,7 +231,7 @@ export function DeliverablesPage() {
                     <p>{dir === 'rtl' ? 'عرض تفاصيل المخرج' : 'View deliverable details'}</p>
                   </TooltipContent>
                 </Tooltip>
-                
+
                 {canEditDeliverables(userProfile?.role || '') && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -244,7 +244,7 @@ export function DeliverablesPage() {
                     </TooltipContent>
                   </Tooltip>
                 )}
-                
+
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="sm" onClick={() => handleDownloadDeliverable(node)}>
@@ -255,7 +255,7 @@ export function DeliverablesPage() {
                     <p>{dir === 'rtl' ? 'تحميل المخرج' : 'Download deliverable'}</p>
                   </TooltipContent>
                 </Tooltip>
-                
+
                 {canEditDeliverables(userProfile?.role || '') && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -311,7 +311,7 @@ export function DeliverablesPage() {
                     <p>{dir === 'rtl' ? 'رفع ملف مخرج جديد' : 'Upload new deliverable file'}</p>
                   </TooltipContent>
                 </Tooltip>
-                
+
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button className="flex items-center gap-2" onClick={() => handleCreateDeliverable()}>
@@ -354,7 +354,7 @@ export function DeliverablesPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
@@ -366,7 +366,7 @@ export function DeliverablesPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
@@ -378,7 +378,7 @@ export function DeliverablesPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
@@ -421,7 +421,7 @@ export function DeliverablesPage() {
           onSubmit={handleCreateDeliverableSubmit}
           parentId={selectedParentId}
         />
-        
+
         {/* Deliverable Viewer */}
         {selectedDeliverable && (
           <DeliverableViewer

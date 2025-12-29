@@ -9,7 +9,7 @@ import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { Activity, Globe } from 'lucide-react';
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 export function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('signin');
@@ -37,7 +37,7 @@ export function AuthForm() {
 
     try {
       const { data, error } = await signIn(signInData.email, signInData.password);
-      
+
       if (error) {
         toast({
           title: "خطأ في تسجيل الدخول",
@@ -63,7 +63,7 @@ export function AuthForm() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (signUpData.password !== signUpData.confirmPassword) {
       toast({
         title: "خطأ في كلمة المرور",
@@ -90,7 +90,7 @@ export function AuthForm() {
         role: signUpData.role,
         organization: signUpData.organization,
       });
-      
+
       if (error) {
         toast({
           title: "خطأ في إنشاء الحساب",
@@ -125,7 +125,7 @@ export function AuthForm() {
     setIsLoading(true);
     try {
       const { data, error } = await signIn(email, '123456');
-      
+
       if (error) {
         toast({
           title: "خطأ في تسجيل الدخول",
@@ -169,9 +169,9 @@ export function AuthForm() {
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center mb-4">
             <div className="w-12 h-12 rounded-lg overflow-hidden shadow-lg ml-3">
-              <img 
-                src="/images/albayan-logo.jpg" 
-                alt="شعار البيان" 
+              <img
+                src="/images/albayan-logo.jpg"
+                alt="شعار البيان"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -185,7 +185,7 @@ export function AuthForm() {
             </div>
           </div>
           <p className="text-gray-600">
-            {language === 'ar' 
+            {language === 'ar'
               ? 'نظام إدارة استشاري متقدم لتحويل العمل الاستشاري التقليدي إلى نظام تشغيل آلي ومتكامل'
               : 'Advanced consulting management system transforming traditional consulting into an automated and integrated operating system'
             }
@@ -219,7 +219,7 @@ export function AuthForm() {
                       disabled={isLoading}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="password">{t('auth.password')}</Label>
                     <Input
@@ -302,8 +302,8 @@ export function AuthForm() {
 
                   <div className="space-y-2">
                     <Label htmlFor="role">{t('auth.role')}</Label>
-                    <Select 
-                      value={signUpData.role} 
+                    <Select
+                      value={signUpData.role}
                       onValueChange={(value: UserRole) => setSignUpData({ ...signUpData, role: value })}
                       disabled={isLoading}
                     >
@@ -318,7 +318,7 @@ export function AuthForm() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signupPassword">{t('auth.password')}</Label>
                     <Input
