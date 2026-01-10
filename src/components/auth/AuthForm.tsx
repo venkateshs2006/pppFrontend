@@ -9,7 +9,7 @@ import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { Activity, Globe } from 'lucide-react';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL;
 export function AuthForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('signin');

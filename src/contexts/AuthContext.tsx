@@ -33,7 +33,7 @@ interface AuthContextType {
   hasPermission: (permission: string) => boolean;
   canAccessSection: (section: string) => boolean;
 }
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL;
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Helper: Define ALL permissions in one place to assign to admins easily
 const ALL_PERMISSIONS = [
@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       // --- ADD YOUR BACKEND CALL HERE ---
       // Example:
-      const response = await fetch('http://localhost:8080/api/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

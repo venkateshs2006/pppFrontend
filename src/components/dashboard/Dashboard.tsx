@@ -20,7 +20,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner'; // Assuming sonner is used for toasts based on package.json
-
+const API_URL = import.meta.env.VITE_API_URL;
 // --- Types based on API Response ---
 interface DashboardStats {
   totalProjects: number;
@@ -107,7 +107,7 @@ export function Dashboard() {
       // Fetch from your Spring Boot API
       // Note: Ensure you handle CORS or proxying if frontend/backend ports differ
       // Add authentication headers if your AuthContext provides a token
-      const response = await fetch('http://localhost:8080/api/dashboard', {
+      const response = await fetch(`${API_URL}/dashboard`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
