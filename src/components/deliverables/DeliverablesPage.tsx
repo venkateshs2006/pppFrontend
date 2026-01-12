@@ -1,424 +1,274 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom'; // Assumed for getting projectId
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CreateDeliverableModal } from './CreateDeliverableModal';
-import { DeliverableViewer } from './DeliverableViewer';
 import {
-  Plus, Search, FolderTree, ChevronRight, ChevronDown, File,
-  FileText, Eye, Edit, Download, Upload, BookOpen,
-  FileCheck, FileX, Clock, CheckCircle2, AlertCircle, Trash2, Loader2
-} from 'lucide-react';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { FileText, Plus, Eye, Loader2, RefreshCw, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner'; // Assuming you use sonner or similar
+import { deliverableService, Deliverable } from '@/services/deliverableService';
+import { projectService } from '@/services/projectService';
+import { DeliverableFormDialog } from './DeliverableFormDialog';
+import { DeliverableViewer } from './DeliverableViewer';
+import { toast } from '@/components/ui/use-toast';
 
-// --- Configuration ---
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-
-// --- Interfaces ---
-interface DeliverableDTO {
+// Basic Project Interface
+interface ProjectDropDown {
   id: string;
-  title: string;
-  titleEn: string;
-  description?: string;
-  descriptionEn?: string;
-  type: 'guide' | 'topic' | 'policy' | 'procedure' | 'template';
-  status: 'draft' | 'review' | 'approved' | 'published' | 'rejected';
-  version: number;
-  parentId?: string; // Important for tree structure
-  projectId: string;
-  createdAt?: string;
-  updatedAt?: string;
-  authorName?: string;
-  authorRole?: string;
-}
-
-interface DeliverableNode extends DeliverableDTO {
-  children: DeliverableNode[];
-  // Mapped UI fields if different from API
-  project?: { name: string; nameEn: string };
-  author?: { name: string; role: string };
-  lastModified?: string;
+  name: string;
 }
 
 export function DeliverablesPage() {
-  const { projectId } = useParams<{ projectId: string }>(); // Get ID from URL
   const { userProfile } = useAuth();
-  const { t, dir, language } = useLanguage();
 
-  // State
-  const [deliverables, setDeliverables] = useState<DeliverableNode[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedParentId, setSelectedParentId] = useState<string | undefined>();
-  const [showViewer, setShowViewer] = useState(false);
-  const [selectedDeliverable, setSelectedDeliverable] = useState<DeliverableNode | null>(null);
+  // --- State ---
+  const [projects, setProjects] = useState<ProjectDropDown[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
 
-  const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-    'Content-Type': 'application/json'
-  });
+  // Viewer State
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
 
-  // --- 1. Helper: Build Tree from Flat API List ---
-  const buildTree = (items: DeliverableDTO[]): DeliverableNode[] => {
-    const map: Record<string, DeliverableNode> = {};
-    const roots: DeliverableNode[] = [];
+  // Dialog State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
 
-    // First pass: create nodes and map them
-    items.forEach(item => {
-      map[item.id] = {
-        ...item,
-        children: [],
-        // Map API flat fields to UI nested objects if needed
-        lastModified: item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : '',
-        author: { name: item.authorName || 'Unknown', role: item.authorRole || 'Consultant' },
-        project: { name: 'Project', nameEn: 'Project' } // Placeholder or fetch actual project name
-      };
-    });
+  // Loading States
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [loadingDeliverables, setLoadingDeliverables] = useState(false);
 
-    // Second pass: connect parents and children
-    items.forEach(item => {
-      if (item.parentId && map[item.parentId]) {
-        map[item.parentId].children.push(map[item.id]);
-      } else {
-        roots.push(map[item.id]);
-      }
-    });
-
-    return roots;
-  };
-
-  // --- 2. API: Fetch Deliverables ---
-  const fetchDeliverables = useCallback(async () => {
-    if (!projectId) return;
-    setIsLoading(true);
-    try {
-      // GET /api/deliverables/project/{projectId}
-      const response = await fetch(`${API_BASE_URL}/deliverables/project/${projectId}`, {
-        headers: getAuthHeaders()
-      });
-
-      if (response.ok) {
-        const data: DeliverableDTO[] = await response.json();
-        const treeStructure = buildTree(data);
-        setDeliverables(treeStructure);
-
-        // Auto-expand root nodes
-        const rootIds = treeStructure.map(n => n.id);
-        setExpandedNodes(new Set(rootIds));
-      } else {
-        throw new Error('Failed to fetch');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error(language === 'ar' ? 'فشل تحميل المخرجات' : 'Failed to load deliverables');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectId, language]);
-
+  // --- 1. Fetch Projects on Mount ---
   useEffect(() => {
-    fetchDeliverables();
-  }, [fetchDeliverables]);
-
-  // --- 3. API: Create Deliverable ---
-  const handleCreateDeliverable = (parentId?: string) => {
-    setSelectedParentId(parentId);
-    setShowCreateModal(true);
-  };
-
-  const handleCreateDeliverableSubmit = async (formData: any) => {
-    try {
-      // POST /api/deliverables
-      const payload = {
-        ...formData,
-        projectId: projectId,
-        parentId: selectedParentId || null,
-        status: 'draft', // Default status
-        version: 1
-      };
-
-      const response = await fetch(`${API_BASE_URL}/deliverables`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) throw new Error('Failed to create');
-
-      toast.success(language === 'ar' ? 'تم إنشاء المخرج بنجاح' : 'Deliverable created successfully');
-      setShowCreateModal(false);
-      fetchDeliverables(); // Refresh tree
-    } catch (error) {
-      toast.error(language === 'ar' ? 'حدث خطأ أثناء الإنشاء' : 'Error creating deliverable');
-    }
-  };
-
-  // --- 4. API: Delete Deliverable ---
-  const handleDeleteDeliverable = async (id: string, title: string) => {
-    if (!confirm(language === 'ar' ? `هل أنت متأكد من حذف "${title}"؟` : `Are you sure you want to delete "${title}"?`)) return;
-
-    try {
-      // DELETE /api/deliverables/{id}
-      const response = await fetch(`${API_BASE_URL}/deliverables/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-
-      if (!response.ok) throw new Error('Failed to delete');
-
-      toast.success(language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
-      fetchDeliverables(); // Refresh tree
-    } catch (error) {
-      toast.error(language === 'ar' ? 'فشل الحذف' : 'Failed to delete');
-    }
-  };
-
-  // --- Handlers ---
-  const handleViewDeliverable = (deliverable: DeliverableNode) => {
-    setSelectedDeliverable(deliverable);
-    setShowViewer(true);
-  };
-
-  const handleEditDeliverable = (deliverable: DeliverableNode) => {
-    // Logic to open Edit Modal (reuses CreateModal with initial data usually)
-    // For now, just logging or you can implement a separate Edit state
-    console.log("Edit requested for:", deliverable.id);
-    // You would typically setEditingDeliverable(deliverable) and open the modal here
-    // Then use PUT /api/deliverables/{id} on submit
-  };
-
-  const canEditDeliverables = (userRole: string) => {
-    return ['system_admin', 'lead_consultant', 'sub_consultant', 'super_admin'].includes(userRole);
-  };
-
-  const toggleNode = (nodeId: string) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(nodeId)) {
-      newExpanded.delete(nodeId);
-    } else {
-      newExpanded.add(nodeId);
-    }
-    setExpandedNodes(newExpanded);
-  };
-
-  // --- UI Helpers ---
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'guide': return <BookOpen className="w-4 h-4 text-blue-500" />;
-      case 'policy': return <FileCheck className="w-4 h-4 text-green-500" />;
-      case 'procedure': return <FileText className="w-4 h-4 text-purple-500" />;
-      case 'template': return <File className="w-4 h-4 text-orange-500" />;
-      default: return <File className="w-4 h-4 text-gray-500" />;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig: any = {
-      draft: { label: language === 'ar' ? 'مسودة' : 'Draft', color: 'bg-gray-100 text-gray-800', icon: FileX },
-      review: { label: language === 'ar' ? 'قيد المراجعة' : 'Under Review', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      approved: { label: language === 'ar' ? 'معتمد' : 'Approved', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
-      published: { label: language === 'ar' ? 'منشور' : 'Published', color: 'bg-blue-100 text-blue-800', icon: CheckCircle2 },
-      rejected: { label: language === 'ar' ? 'مرفوض' : 'Rejected', color: 'bg-red-100 text-red-800', icon: AlertCircle },
-    };
-    const config = statusConfig[status] || statusConfig.draft;
-    const Icon = config.icon;
-    return (
-      <Badge variant="outline" className={`${config.color} flex items-center gap-1`}>
-        <Icon className="w-3 h-3" /> {config.label}
-      </Badge>
-    );
-  };
-
-  // Recursive Render
-  const renderTreeNode = (node: DeliverableNode, level: number = 0) => {
-    const hasChildren = node.children && node.children.length > 0;
-    const isExpanded = expandedNodes.has(node.id);
-
-    return (
-      <div key={node.id} className="space-y-2">
-        <Card className={`hover:shadow-md transition-shadow ${level > 0 ? (dir === 'rtl' ? 'mr-6' : 'ml-6') : ''}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1">
-                {/* Expand Toggle */}
-                <Button variant="ghost" size="sm"
-                  onClick={() => toggleNode(node.id)}
-                  className={`p-1 h-6 w-6 ${!hasChildren ? 'invisible' : ''}`}
-                >
-                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                </Button>
-
-                <div className="flex-shrink-0">{getTypeIcon(node.type)}</div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-medium text-sm truncate">
-                      {language === 'ar' ? node.title : node.titleEn}
-                    </h3>
-                    {getStatusBadge(node.status)}
-                    <Badge variant="outline" className="text-xs">v{node.version}</Badge>
-                  </div>
-
-                  {(node.description || node.descriptionEn) && (
-                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                      {language === 'ar' ? node.description : node.descriptionEn}
-                    </p>
-                  )}
-
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span>{node.author?.name}</span>
-                    <span>{node.lastModified}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" onClick={() => handleViewDeliverable(node)}>
-                      <Eye className="w-4 h-4 text-gray-500" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>{language === 'ar' ? 'عرض' : 'View'}</p></TooltipContent>
-                </Tooltip>
-
-                {canEditDeliverables(userProfile?.role || '') && (
-                  <>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={() => handleEditDeliverable(node)}>
-                          <Edit className="w-4 h-4 text-blue-600" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>{language === 'ar' ? 'تحرير' : 'Edit'}</p></TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={() => handleCreateDeliverable(node.id)}>
-                          <Plus className="w-4 h-4 text-green-600" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>{language === 'ar' ? 'إضافة فرعي' : 'Add Sub-item'}</p></TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteDeliverable(node.id, node.title)}>
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent><p>{language === 'ar' ? 'حذف' : 'Delete'}</p></TooltipContent>
-                    </Tooltip>
-                  </>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {hasChildren && isExpanded && (
-          <div className="space-y-2 border-l-2 border-gray-100 dark:border-gray-800 ml-3 pl-2">
-            {node.children.map(child => renderTreeNode(child, level + 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // --- Filtering ---
-  const filterNodes = (nodes: DeliverableNode[]): DeliverableNode[] => {
-    if (!searchTerm) return nodes;
-
-    return nodes.reduce((acc: DeliverableNode[], node) => {
-      const matches = (language === 'ar' ? node.title : node.titleEn).toLowerCase().includes(searchTerm.toLowerCase());
-      const filteredChildren = filterNodes(node.children);
-
-      if (matches || filteredChildren.length > 0) {
-        acc.push({ ...node, children: filteredChildren });
+    const fetchProjects = async () => {
+      setLoadingProjects(true);
+      try {
+        const data = await projectService.getAllProjects();
+        // FIX: Map the raw data to the format the component expects
+        const formattedProjects: ProjectDropDown[] = Array.isArray(data) ? data.map((item: any) => ({
+          id: String(item.id),
+          name: item.titleEn || item.name || 'Unnamed Project'
+        })) : [];
+        setProjects(formattedProjects);
+      } catch (error) {
+        console.error("Failed to load projects", error);
+        toast({ variant: "destructive", title: "Error", description: "Failed to load projects list." });
+      } finally {
+        setLoadingProjects(false);
       }
-      return acc;
-    }, []);
+    };
+    fetchProjects();
+  }, []);
+
+  // --- 2. Fetch Deliverables when Project Changes ---
+  useEffect(() => {
+    if (selectedProjectId) {
+      loadDeliverables(selectedProjectId);
+    } else {
+      setDeliverables([]);
+    }
+  }, [selectedProjectId]);
+
+  const loadDeliverables = async (projectId: string) => {
+    setLoadingDeliverables(true);
+    try {
+      const data = await deliverableService.getByProject(projectId);
+      setDeliverables(data);
+    } catch (err) {
+      console.error("Failed to load deliverables", err);
+      toast({ variant: "destructive", title: "Error", description: "Failed to load deliverables." });
+    } finally {
+      setLoadingDeliverables(false);
+    }
   };
 
-  const displayedDeliverables = filterNodes(deliverables);
+  // --- 3. Handle Delete ---
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this deliverable? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await deliverableService.delete(id); // Ensure this method exists in your service
+      toast({ title: "Deleted", description: "Deliverable deleted successfully." });
+      // Refresh list
+      loadDeliverables(selectedProjectId);
+    } catch (error) {
+      console.error("Delete failed", error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to delete deliverable." });
+    }
+  };
+
+  // --- 4. Handle Edit Click ---
+  const handleEditClick = (del: Deliverable) => {
+    setSelectedDeliverable(del); // Set the item to be edited
+    setIsDialogOpen(true);       // Open the form
+  };
+
+  // --- 5. Handle Create Click ---
+  const handleCreateClick = () => {
+    setSelectedDeliverable(null); // Clear previous selection for new item
+    setIsDialogOpen(true);
+  };
+
+  // --- Helper: Status Colors ---
+  const getStatusColor = (status: string) => {
+    const statusKey = status ? status.toLowerCase() : '';
+    const map: Record<string, string> = {
+      'draft': 'bg-gray-100 text-gray-800',
+      'in_progress': 'bg-blue-100 text-blue-800',
+      'review': 'bg-yellow-100 text-yellow-800',
+      'approved': 'bg-green-100 text-green-800',
+      'rejected': 'bg-red-100 text-red-800',
+      'closed': 'bg-purple-100 text-purple-800'
+    };
+    return map[statusKey] || 'bg-gray-100';
+  };
 
   return (
-    <TooltipProvider>
-      <div className="space-y-6 p-6" dir={dir}>
-        {/* Header Section */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{t('deliverables.title')}</h1>
-            <p className="text-gray-600 mt-1">{t('deliverables.description')}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Main Add Button (Root Level) */}
-            {canEditDeliverables(userProfile?.role || '') && (
-              <Button className="flex items-center gap-2" onClick={() => handleCreateDeliverable()}>
-                <Plus className="w-4 h-4" />
-                {language === 'ar' ? 'مخرج جديد' : 'New Deliverable'}
-              </Button>
-            )}
-          </div>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Deliverables Management</h1>
+          <p className="text-gray-500 text-sm">Manage project documents and approvals</p>
         </div>
 
-        {/* Stats & Search removed for brevity, keep your existing code for them */}
+        {/* Project Selector */}
+        <div className="w-72">
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={loadingProjects}>
+            <SelectTrigger>
+              <SelectValue placeholder={loadingProjects ? "Loading Projects..." : "Select a Project..."} />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.length === 0 && !loadingProjects ? (
+                <div className="p-2 text-sm text-gray-500 text-center">No projects found</div>
+              ) : (
+                projects.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        {/* Tree Render */}
+      {/* Main Content Area */}
+      {selectedProjectId ? (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FolderTree className="w-5 h-5" />
-              {language === 'ar' ? 'شجرة المخرجات' : 'Deliverables Tree'}
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg">
+              Deliverables ({deliverables.length})
             </CardTitle>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="icon" onClick={() => loadDeliverables(selectedProjectId)} disabled={loadingDeliverables}>
+                <RefreshCw className={`w-4 h-4 ${loadingDeliverables ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button onClick={handleCreateClick}>
+                <Plus className="w-4 h-4 mr-2" /> Add Deliverable
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center py-12"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>
+            {loadingDeliverables ? (
+              <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
+            ) : deliverables.length === 0 ? (
+              <div className="text-center py-12 text-gray-500 border-2 border-dashed rounded-lg">
+                <FileText className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+                <p>No deliverables found for this project.</p>
+                <Button variant="link" onClick={handleCreateClick}>Create the first one</Button>
+              </div>
             ) : (
-              <div className="space-y-4">
-                {displayedDeliverables.length > 0 ? (
-                  displayedDeliverables.map(node => renderTreeNode(node))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <FolderTree className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>{language === 'ar' ? 'لا توجد مخرجات' : 'No deliverables found'}</p>
+              <div className="space-y-3">
+                {deliverables.map(del => (
+                  <div key={del.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className={`p-3 rounded-lg ${del.type === 'POLICY' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{del.title}</h4>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                          <Badge variant="outline" className="text-xs font-normal capitalize">
+                            {del.type.toLowerCase()}
+                          </Badge>
+                          <span>•</span>
+                          <span>v{del.version}</span>
+                          <span>•</span>
+                          <span>Updated: {new Date(del.updatedAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <Badge className={`${getStatusColor(del.status)} border-0`}>
+                        {del.status.replace(/_/g, ' ')}
+                      </Badge>
+
+                      <div className="flex items-center gap-1">
+                        {/* VIEW Button */}
+                        <Button variant="outline" size="sm" onClick={() => { setSelectedDeliverable(del); setIsViewerOpen(true); }}>
+                          <Eye className="w-4 h-4 mr-2" /> View
+                        </Button>
+
+                        {/* ACTIONS Dropdown */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditClick(del)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleDelete(del.id)} className="text-red-600 focus:text-red-600">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg bg-gray-50 text-gray-500">
+          <FileText className="w-12 h-12 mb-4 text-gray-300" />
+          <p className="text-lg font-medium">No Project Selected</p>
+          <p className="text-sm">Please select a project from the dropdown above to manage its deliverables.</p>
+        </div>
+      )}
 
-        <CreateDeliverableModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreateDeliverableSubmit}
-          parentId={selectedParentId}
+      {/* Add/Edit Modal */}
+      {isDialogOpen && (
+        <DeliverableFormDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          projectId={selectedProjectId}
+          deliverable={selectedDeliverable} // Passes the item to edit, or null for create
+          onSuccess={() => loadDeliverables(selectedProjectId)} // Refreshes list after save
         />
+      )}
 
-        {selectedDeliverable && (
-          <DeliverableViewer
-            isOpen={showViewer}
-            onClose={() => { setShowViewer(false); setSelectedDeliverable(null); }}
-            deliverable={{
-              ...selectedDeliverable,
-              description: selectedDeliverable.description || '',
-              descriptionEn: selectedDeliverable.descriptionEn || '',
-              version: String(selectedDeliverable.version)
-            }}
-          />
-        )}
-      </div>
-    </TooltipProvider>
+      {/* Viewer Modal */}
+      {isViewerOpen && selectedDeliverable && (
+        <DeliverableViewer
+          isOpen={isViewerOpen}
+          onClose={() => setIsViewerOpen(false)}
+          deliverable={selectedDeliverable}
+        />
+      )}
+    </div>
   );
 }

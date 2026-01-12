@@ -199,19 +199,39 @@ export interface ProjectMemberDTO {
 // Note: Unions kept for frontend type safety, though API schema is generic string
 export type DeliverableType = 'guide' | 'topic' | 'policy' | 'procedure' | 'template' | 'report' | string;
 
+export type DeliverableStatus = 'DRAFT' | 'IN_PROGRESS' | 'REVIEW' | 'APPROVED' | 'REJECTED'; // Example values
+
 export interface DeliverableDTO {
-    id: string; // UUID
+    // Identity
+    id: string;                  // Java: UUID
+    parentId?: string;           // Java: UUID (Optional)
+    projectId: string;           // Java: UUID
+
+    // Content & Localization
     title: string;
+    titleEn?: string;            // New: For English specific title
     description?: string;
-    type: DeliverableType;
-    status?: string;
+    descriptionEn?: string;      // New: For English specific description
+
+    // Metadata
+    type: DeliverableType;       // Java: Enum
+    status: string;              // Java: Enum (Use string or specific Union type)
     version?: string;
-    orderIndex?: number;
-    projectId?: string; // UUID
-    createdById?: number;
+
+    // File Storage (New)
+    fileName?: string;           // New
+    fileUrl?: string;            // New
+
+    // User & timestamps
+    assignedToId?: number;       // Java: Long
     createdByName?: string;
-    createdAt?: string;
-    updatedAt?: string;
+    createdAt: string;           // Java: LocalDateTime (ISO String)
+    updatedAt: string;           // Java: LocalDateTime (ISO String)
+
+    // Optional: Keep these if your frontend logic uses them, 
+    // even if they aren't explicitly in this specific Java DTO snippet yet.
+    createdById?: number;
+    orderIndex?: number;
 }
 
 // --- Tickets ---
@@ -240,6 +260,7 @@ export interface TicketDTO {
     createdAt: string;
     resolvedAt?: string;
 }
+
 
 export interface TicketCommentDTO {
     id: string; // UUID

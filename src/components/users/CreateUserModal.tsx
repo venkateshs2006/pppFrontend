@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, UserPlus } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CreateUserDTO } from '@/services/UserService';
-
+const navigate = useNavigate();
 interface CreateUserModalProps {
   isOpen: boolean;
   onClose: () => void;
