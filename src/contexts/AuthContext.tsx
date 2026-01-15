@@ -121,7 +121,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('accessToken', data.data.refreshToken);
       console.log(data);
       const mockUser = {
-        id: data.data.username,
+        id: data.data.id,
+        user_name: data.data.userName,
         email: data.data.email,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

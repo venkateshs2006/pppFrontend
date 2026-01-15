@@ -52,7 +52,7 @@ export function CreateProjectModal({ isOpen, onClose, onSubmit }: CreateProjectM
         const token = localStorage.getItem('accessToken');
 
         // Ensure URL is correct
-        const response = await fetch(`${API_URL}/organizations`, {
+        const response = await fetch(`${API_URL}/clients`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

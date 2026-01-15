@@ -89,7 +89,7 @@ export function ProjectsPage() {
         budget: parseFloat(projectData.budget)
       };
 
-      await projectService.createProject(dto);
+      //  await projectService.createProject(dto);
 
       toast({
         title: dir === 'rtl' ? 'نجاح' : 'Success',
@@ -293,7 +293,7 @@ export function ProjectsPage() {
                   <SelectValue placeholder={t('projects.filterByPriority')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('projects.allPriorities')}</SelectItem>
+                  <SelectItem value="all">{t('All Priorities')}</SelectItem>
                   <SelectItem value="low">{t('tickets.low')}</SelectItem>
                   <SelectItem value="medium">{t('tickets.medium')}</SelectItem>
                   <SelectItem value="high">{t('tickets.high')}</SelectItem>

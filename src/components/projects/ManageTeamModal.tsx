@@ -27,7 +27,7 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-
+const token = localStorage.getItem('accessToken');
 // --- Configuration ---
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -150,7 +150,11 @@ export function ManageTeamModal({ isOpen, onClose, project, onSave }: ManageTeam
     setIsSubmitting(true);
     try {
       const response = await fetch(`${API_BASE_URL}/users/search?email=${formData.email}`, {
-        headers: getAuthHeaders()
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Include Auth Token
+        }
       });
 
       if (response.ok) {

@@ -1,20 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  TrendingDown,
+import {
+  BarChart3,
+  TrendingUp,
   Users,
   FileText,
-  CheckCircle2,
   Clock,
   AlertTriangle,
   Target,
   Calendar,
   Download,
-  Filter,
   RefreshCw,
   PieChart,
   Activity,
@@ -23,114 +20,136 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+const API_URL = import.meta.env.VITE_API_URL;
+// --- Interfaces matching Java DTOs ---
 
+interface Overview {
+  totalProjects: number;
+  activeProjects: number;
+  completedProjects: number;
+  totalDeliverables: number;
+  approvedDeliverables: number;
+  pendingDeliverables: number;
+  totalTickets: number;
+  resolvedTickets: number;
+  openTickets: number;
+  totalRevenue: number;
+  collectedRevenue: number;
+  clientSatisfaction: number;
+}
+
+interface ProjectProgress {
+  id: string;
+  name: string;
+  nameEn: string;
+  progress: number;
+  budget: number;
+  spent: number;
+}
+
+interface DeliverableStatus {
+  status: string;
+  count: number;
+  percentage: number;
+}
+
+interface TicketPriority {
+  priority: string;
+  count: number;
+  percentage: number;
+}
+
+interface MonthlyTrend {
+  month: string;
+  monthEn: string;
+  projects: number;
+  deliverables: number;
+  tickets: number;
+}
+
+interface ClientMetric {
+  clientId: number;
+  name: string;
+  nameEn: string;
+  satisfaction: number;
+  projects: number;
+  value: number;
+}
+
+interface DashboardData {
+  overview: Overview;
+  projectProgress: ProjectProgress[];
+  deliverablesByStatus: DeliverableStatus[];
+  ticketsByPriority: TicketPriority[];
+  monthlyTrends: MonthlyTrend[];
+  clientMetrics?: ClientMetric[]; // Optional as it depends on role
+}
+
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  data: DashboardData;
+}
+const token = localStorage.getItem('accessToken');
 export function ReportsPage() {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuth(); // Assuming token is available here
   const { t, dir } = useLanguage();
+
+  // State
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedProject, setSelectedProject] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch Data Function
+  const fetchReportsData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Build Query Params
+      const params = new URLSearchParams({
+        period: selectedPeriod,
+        project: selectedProject
+      });
+
+      const response = await fetch(`${API_URL}/reports/dashboard?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Include Auth Token
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch reports data');
+      }
+      console.log(response.json);
+      const result: ApiResponse = await response.json();
+      console.log('Success Status  :' + result.success);
+      console.log('Message  :' + result.message);
+      console.log('Data   :' + result.data);
+      if (result.success && result.data) {
+        setData(result.data);
+      } else {
+        throw new Error(result.message || 'Invalid data format');
+      }
+    } catch (err) {
+      console.error('Error fetching reports:', err);
+      setError('Failed to load dashboard data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial Load & Filter Changes
+  useEffect(() => {
+    fetchReportsData();
+  }, [selectedPeriod, selectedProject]);
 
   const refreshData = () => {
-    setLoading(true);
-    setTimeout(() => setLoading(false), 1000);
+    fetchReportsData();
   };
-
-  // بيانات التقارير حسب دور المستخدم
-  const getReportsData = () => {
-    const baseData = {
-      overview: {
-        totalProjects: 12,
-        activeProjects: 8,
-        completedProjects: 4,
-        totalDeliverables: 45,
-        approvedDeliverables: 32,
-        pendingDeliverables: 13,
-        totalTickets: 28,
-        resolvedTickets: 20,
-        openTickets: 8,
-        totalRevenue: 4330000,
-        collectedRevenue: 3247500,
-        clientSatisfaction: 91
-      },
-      projectProgress: [
-        { name: 'مشروع الموارد البشرية', nameEn: 'HR Project', progress: 75, budget: 450000, spent: 337500 },
-        { name: 'مشروع السياسات المالية', nameEn: 'Financial Policies', progress: 45, budget: 380000, spent: 171000 },
-        { name: 'مشروع الحوكمة', nameEn: 'Governance Project', progress: 15, budget: 520000, spent: 78000 },
-        { name: 'مشروع الأمن السيبراني', nameEn: 'Cybersecurity Project', progress: 60, budget: 290000, spent: 174000 }
-      ],
-      deliverablesByStatus: [
-        { status: 'draft', count: 8, percentage: 18 },
-        { status: 'review', count: 5, percentage: 11 },
-        { status: 'approved', count: 20, percentage: 44 },
-        { status: 'published', count: 12, percentage: 27 }
-      ],
-      ticketsByPriority: [
-        { priority: 'low', count: 5, percentage: 18 },
-        { priority: 'medium', count: 12, percentage: 43 },
-        { priority: 'high', count: 8, percentage: 29 },
-        { priority: 'urgent', count: 3, percentage: 10 }
-      ],
-      monthlyTrends: [
-        { month: 'يناير', monthEn: 'Jan', projects: 2, deliverables: 8, tickets: 5 },
-        { month: 'فبراير', monthEn: 'Feb', projects: 3, deliverables: 12, tickets: 7 },
-        { month: 'مارس', monthEn: 'Mar', projects: 2, deliverables: 15, tickets: 6 },
-        { month: 'أبريل', monthEn: 'Apr', projects: 1, deliverables: 10, tickets: 4 },
-        { month: 'مايو', monthEn: 'May', projects: 2, deliverables: 18, tickets: 8 },
-        { month: 'يونيو', monthEn: 'Jun', projects: 2, deliverables: 22, tickets: 6 }
-      ],
-      clientMetrics: [
-        { name: 'شركة التقنية المتقدمة', nameEn: 'Advanced Technology', satisfaction: 92, projects: 3, value: 1250000 },
-        { name: 'مجموعة الاستثمار الخليجي', nameEn: 'Gulf Investment Group', satisfaction: 88, projects: 2, value: 850000 },
-        { name: 'البنك التجاري الوطني', nameEn: 'National Commercial Bank', satisfaction: 95, projects: 1, value: 520000 },
-        { name: 'شركة الاتصالات الرقمية', nameEn: 'Digital Communications', satisfaction: 90, projects: 2, value: 680000 }
-      ]
-    };
-
-    // تعديل البيانات حسب دور المستخدم
-    if (userProfile?.role === 'sub_consultant') {
-      return {
-        ...baseData,
-        overview: {
-          ...baseData.overview,
-          totalProjects: 5,
-          activeProjects: 3,
-          completedProjects: 2,
-          totalDeliverables: 18,
-          approvedDeliverables: 12,
-          pendingDeliverables: 6,
-          totalTickets: 12,
-          resolvedTickets: 8,
-          openTickets: 4
-        },
-        projectProgress: baseData.projectProgress.slice(0, 3)
-      };
-    } else if (userProfile?.role === 'main_client' || userProfile?.role === 'sub_client') {
-      return {
-        ...baseData,
-        overview: {
-          ...baseData.overview,
-          totalProjects: 3,
-          activeProjects: 2,
-          completedProjects: 1,
-          totalDeliverables: 15,
-          approvedDeliverables: 11,
-          pendingDeliverables: 4,
-          totalTickets: 8,
-          resolvedTickets: 5,
-          openTickets: 3,
-          totalRevenue: 1250000,
-          collectedRevenue: 950000
-        },
-        projectProgress: baseData.projectProgress.slice(0, 2),
-        clientMetrics: baseData.clientMetrics.slice(0, 1)
-      };
-    }
-
-    return baseData;
-  };
-
-  const data = getReportsData();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat(dir === 'rtl' ? 'ar-SA' : 'en-US', {
@@ -141,23 +160,56 @@ export function ReportsPage() {
   };
 
   const getStatusColor = (status: string) => {
-    const colors = {
+    // Map backend status strings to colors
+    const normalized = status.toLowerCase();
+    const colors: Record<string, string> = {
       draft: 'bg-gray-500',
       review: 'bg-yellow-500',
       approved: 'bg-green-500',
-      published: 'bg-blue-500'
+      published: 'bg-blue-500',
+      // Add fallbacks for other statuses if needed
+      pending_approval: 'bg-yellow-500',
+      completed: 'bg-green-500'
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-500';
+    return colors[normalized] || 'bg-gray-500';
   };
 
   const getPriorityColor = (priority: string) => {
-    const colors = {
+    const normalized = priority.toLowerCase();
+    const colors: Record<string, string> = {
       low: 'bg-green-500',
       medium: 'bg-yellow-500',
       high: 'bg-orange-500',
       urgent: 'bg-red-500'
     };
-    return colors[priority as keyof typeof colors] || 'bg-gray-500';
+    return colors[normalized] || 'bg-gray-500';
+  };
+
+  if (loading && !data) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-center text-red-600">
+        <p>{error}</p>
+        <Button onClick={refreshData} variant="outline" className="mt-4">
+          {t('common.retry')}
+        </Button>
+      </div>
+    );
+  }
+
+  // Use optional chaining for safety if API returns partial data
+  const overview = data?.overview || {
+    totalProjects: 0, activeProjects: 0, completedProjects: 0,
+    totalDeliverables: 0, approvedDeliverables: 0, pendingDeliverables: 0,
+    totalTickets: 0, resolvedTickets: 0, openTickets: 0,
+    totalRevenue: 0, collectedRevenue: 0, clientSatisfaction: 0
   };
 
   return (
@@ -200,6 +252,9 @@ export function ReportsPage() {
                 </SelectContent>
               </Select>
             </div>
+            {/* NOTE: Ideally the Project list should also be dynamic. 
+                For now, keeping static options or 'all', but you might want to fetch this list too.
+            */}
             <div className="w-full md:w-48">
               <Select value={selectedProject} onValueChange={setSelectedProject}>
                 <SelectTrigger>
@@ -207,9 +262,9 @@ export function ReportsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{dir === 'rtl' ? 'جميع المشاريع' : 'All Projects'}</SelectItem>
-                  <SelectItem value="hr">{dir === 'rtl' ? 'مشروع الموارد البشرية' : 'HR Project'}</SelectItem>
-                  <SelectItem value="finance">{dir === 'rtl' ? 'مشروع السياسات المالية' : 'Financial Policies'}</SelectItem>
-                  <SelectItem value="governance">{dir === 'rtl' ? 'مشروع الحوكمة' : 'Governance Project'}</SelectItem>
+                  {data?.projectProgress?.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{dir === 'rtl' ? p.name : p.nameEn}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -224,9 +279,10 @@ export function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">{t('dashboard.totalProjects')}</p>
-                <p className="text-2xl font-bold">{data.overview.totalProjects}</p>
+                <p className="text-2xl font-bold">{overview.totalProjects}</p>
                 <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
                   <TrendingUp className="w-3 h-3" />
+                  {/* Note: Backend needs to provide trend data for this to be dynamic */}
                   +12% {dir === 'rtl' ? 'من الشهر الماضي' : 'from last month'}
                 </p>
               </div>
@@ -240,7 +296,7 @@ export function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">{dir === 'rtl' ? 'إجمالي المخرجات' : 'Total Deliverables'}</p>
-                <p className="text-2xl font-bold">{data.overview.totalDeliverables}</p>
+                <p className="text-2xl font-bold">{overview.totalDeliverables}</p>
                 <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
                   <TrendingUp className="w-3 h-3" />
                   +8% {dir === 'rtl' ? 'من الشهر الماضي' : 'from last month'}
@@ -256,7 +312,7 @@ export function ReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">{dir === 'rtl' ? 'معدل الرضا' : 'Satisfaction Rate'}</p>
-                <p className="text-2xl font-bold">{data.overview.clientSatisfaction}%</p>
+                <p className="text-2xl font-bold">{overview.clientSatisfaction}%</p>
                 <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
                   <TrendingUp className="w-3 h-3" />
                   +3% {dir === 'rtl' ? 'من الشهر الماضي' : 'from last month'}
@@ -267,13 +323,14 @@ export function ReportsPage() {
           </CardContent>
         </Card>
 
+        {/* Conditional Revenue Card based on User Role or Data Availability */}
         {(userProfile?.role === 'lead_consultant' || userProfile?.role === 'system_admin') && (
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">{dir === 'rtl' ? 'الإيرادات المحصلة' : 'Collected Revenue'}</p>
-                  <p className="text-xl font-bold">{formatCurrency(data.overview.collectedRevenue)}</p>
+                  <p className="text-xl font-bold">{formatCurrency(overview.collectedRevenue)}</p>
                   <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
                     <TrendingUp className="w-3 h-3" />
                     +15% {dir === 'rtl' ? 'من الشهر الماضي' : 'from last month'}
@@ -297,7 +354,8 @@ export function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {data.projectProgress.map((project, index) => (
+            {data?.projectProgress?.length === 0 && <p className="text-sm text-gray-500 text-center">No projects found.</p>}
+            {data?.projectProgress?.map((project, index) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">
@@ -306,8 +364,8 @@ export function ReportsPage() {
                   <span className="text-gray-600">{project.progress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${project.progress}%` }}
                   ></div>
                 </div>
@@ -329,19 +387,13 @@ export function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {data.deliverablesByStatus.map((item, index) => (
+            {data?.deliverablesByStatus?.map((item, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full ${getStatusColor(item.status)}`}></div>
-                  <span className="text-sm">
-                    {dir === 'rtl' ? 
-                      (item.status === 'draft' ? 'مسودة' : 
-                       item.status === 'review' ? 'مراجعة' :
-                       item.status === 'approved' ? 'معتمد' : 'منشور') :
-                      (item.status === 'draft' ? 'Draft' : 
-                       item.status === 'review' ? 'Review' :
-                       item.status === 'approved' ? 'Approved' : 'Published')
-                    }
+                  <span className="text-sm capitalize">
+                    {/* You might want a translation map here for proper Arabic/English toggle */}
+                    {item.status.replace('_', ' ')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -352,7 +404,7 @@ export function ReportsPage() {
             ))}
             <div className="pt-2 border-t">
               <div className="flex h-2 rounded-full overflow-hidden">
-                {data.deliverablesByStatus.map((item, index) => (
+                {data?.deliverablesByStatus?.map((item, index) => (
                   <div
                     key={index}
                     className={getStatusColor(item.status)}
@@ -376,19 +428,12 @@ export function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {data.ticketsByPriority.map((item, index) => (
+            {data?.ticketsByPriority?.map((item, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${getPriorityColor(item.priority)}`}></div>
-                  <span className="text-sm">
-                    {dir === 'rtl' ? 
-                      (item.priority === 'low' ? 'منخفضة' : 
-                       item.priority === 'medium' ? 'متوسطة' :
-                       item.priority === 'high' ? 'عالية' : 'عاجلة') :
-                      (item.priority === 'low' ? 'Low' : 
-                       item.priority === 'medium' ? 'Medium' :
-                       item.priority === 'high' ? 'High' : 'Urgent')
-                    }
+                  <span className="text-sm capitalize">
+                    {item.priority}
                   </span>
                 </div>
                 <span className="text-sm font-medium">{item.count}</span>
@@ -397,7 +442,7 @@ export function ReportsPage() {
           </CardContent>
         </Card>
 
-        {/* Key Metrics */}
+        {/* Key Metrics - Calculated from Overview */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -406,39 +451,35 @@ export function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Project Completion Rate */}
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">
                 {dir === 'rtl' ? 'معدل إنجاز المشاريع' : 'Project Completion Rate'}
               </span>
-              <span className="text-sm font-medium">75%</span>
+              <span className="text-sm font-medium">
+                {overview.totalProjects > 0 ? Math.round((overview.completedProjects / overview.totalProjects) * 100) : 0}%
+              </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-green-600 h-2 rounded-full" style={{ width: '75%' }}></div>
+              <div className="bg-green-600 h-2 rounded-full" style={{ width: `${overview.totalProjects > 0 ? (overview.completedProjects / overview.totalProjects) * 100 : 0}%` }}></div>
             </div>
 
+            {/* Ticket Resolution Rate */}
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">
-                {dir === 'rtl' ? 'معدل الاستجابة للتذاكر' : 'Ticket Response Rate'}
+                {dir === 'rtl' ? 'معدل حل التذاكر' : 'Ticket Resolution Rate'}
               </span>
-              <span className="text-sm font-medium">92%</span>
+              <span className="text-sm font-medium">
+                {overview.totalTickets > 0 ? Math.round((overview.resolvedTickets / overview.totalTickets) * 100) : 0}%
+              </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '92%' }}></div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                {dir === 'rtl' ? 'الالتزام بالمواعيد' : 'On-Time Delivery'}
-              </span>
-              <span className="text-sm font-medium">88%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-purple-600 h-2 rounded-full" style={{ width: '88%' }}></div>
+              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${overview.totalTickets > 0 ? (overview.resolvedTickets / overview.totalTickets) * 100 : 0}%` }}></div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
+        {/* Recent Activity - Kept static or needs separate API endpoint */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -447,51 +488,24 @@ export function ReportsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* TODO: API integration for /api/dashboard/recent (if exists) 
+                 Using static placeholder for layout consistency as requested.
+             */}
             <div className="flex items-center gap-3 text-sm">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span className="text-gray-600">
-                {dir === 'rtl' ? 'تم اعتماد سياسة جديدة' : 'New policy approved'}
+                {dir === 'rtl' ? 'تم تحديث البيانات' : 'Data Refreshed'}
               </span>
               <span className="text-xs text-gray-400 mr-auto">
-                {dir === 'rtl' ? 'منذ ساعتين' : '2h ago'}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-3 text-sm">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-gray-600">
-                {dir === 'rtl' ? 'تم إنشاء مشروع جديد' : 'New project created'}
-              </span>
-              <span className="text-xs text-gray-400 mr-auto">
-                {dir === 'rtl' ? 'منذ 4 ساعات' : '4h ago'}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-3 text-sm">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-              <span className="text-gray-600">
-                {dir === 'rtl' ? 'تذكرة جديدة مفتوحة' : 'New ticket opened'}
-              </span>
-              <span className="text-xs text-gray-400 mr-auto">
-                {dir === 'rtl' ? 'منذ 6 ساعات' : '6h ago'}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-3 text-sm">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <span className="text-gray-600">
-                {dir === 'rtl' ? 'تم تحديث مخرج' : 'Deliverable updated'}
-              </span>
-              <span className="text-xs text-gray-400 mr-auto">
-                {dir === 'rtl' ? 'منذ 8 ساعات' : '8h ago'}
+                {new Date().toLocaleTimeString()}
               </span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Client Metrics - Only for Lead Consultant */}
-      {(userProfile?.role === 'lead_consultant' || userProfile?.role === 'system_admin') && (
+      {/* Client Metrics - Only for Lead Consultant / Admin */}
+      {data?.clientMetrics && data.clientMetrics.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -531,8 +545,8 @@ export function ReportsPage() {
                       <td className="py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-green-600 h-2 rounded-full" 
+                            <div
+                              className="bg-green-600 h-2 rounded-full"
                               style={{ width: `${client.satisfaction}%` }}
                             ></div>
                           </div>
@@ -562,14 +576,15 @@ export function ReportsPage() {
             <div>
               <h4 className="font-medium mb-3">{dir === 'rtl' ? 'المشاريع الجديدة' : 'New Projects'}</h4>
               <div className="space-y-2">
-                {data.monthlyTrends.map((month, index) => (
+                {data?.monthlyTrends?.map((month, index) => (
                   <div key={index} className="flex items-center justify-between text-sm">
                     <span>{dir === 'rtl' ? month.month : month.monthEn}</span>
                     <div className="flex items-center gap-2">
                       <div className="w-12 bg-gray-200 rounded-full h-1">
-                        <div 
-                          className="bg-blue-600 h-1 rounded-full" 
-                          style={{ width: `${(month.projects / 3) * 100}%` }}
+                        <div
+                          className="bg-blue-600 h-1 rounded-full"
+                          // Simple scaling relative to max possible, ideally calculate max from data
+                          style={{ width: `${Math.min((month.projects / 5) * 100, 100)}%` }}
                         ></div>
                       </div>
                       <span className="font-medium">{month.projects}</span>
@@ -583,14 +598,14 @@ export function ReportsPage() {
             <div>
               <h4 className="font-medium mb-3">{dir === 'rtl' ? 'المخرجات المكتملة' : 'Completed Deliverables'}</h4>
               <div className="space-y-2">
-                {data.monthlyTrends.map((month, index) => (
+                {data?.monthlyTrends?.map((month, index) => (
                   <div key={index} className="flex items-center justify-between text-sm">
                     <span>{dir === 'rtl' ? month.month : month.monthEn}</span>
                     <div className="flex items-center gap-2">
                       <div className="w-12 bg-gray-200 rounded-full h-1">
-                        <div 
-                          className="bg-green-600 h-1 rounded-full" 
-                          style={{ width: `${(month.deliverables / 22) * 100}%` }}
+                        <div
+                          className="bg-green-600 h-1 rounded-full"
+                          style={{ width: `${Math.min((month.deliverables / 20) * 100, 100)}%` }}
                         ></div>
                       </div>
                       <span className="font-medium">{month.deliverables}</span>
@@ -604,14 +619,14 @@ export function ReportsPage() {
             <div>
               <h4 className="font-medium mb-3">{dir === 'rtl' ? 'التذاكر المحلولة' : 'Resolved Tickets'}</h4>
               <div className="space-y-2">
-                {data.monthlyTrends.map((month, index) => (
+                {data?.monthlyTrends?.map((month, index) => (
                   <div key={index} className="flex items-center justify-between text-sm">
                     <span>{dir === 'rtl' ? month.month : month.monthEn}</span>
                     <div className="flex items-center gap-2">
                       <div className="w-12 bg-gray-200 rounded-full h-1">
-                        <div 
-                          className="bg-purple-600 h-1 rounded-full" 
-                          style={{ width: `${(month.tickets / 8) * 100}%` }}
+                        <div
+                          className="bg-purple-600 h-1 rounded-full"
+                          style={{ width: `${Math.min((month.tickets / 10) * 100, 100)}%` }}
                         ></div>
                       </div>
                       <span className="font-medium">{month.tickets}</span>

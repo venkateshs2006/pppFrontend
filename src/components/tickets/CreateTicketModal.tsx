@@ -6,152 +6,159 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Plus, Save, MessageSquare, Flag, User, FileText, Upload, Loader2
-} from 'lucide-react';
+import { Save, MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext'; // To get current user ID
-import { api } from '@/services/api'; // Import your API client
-import { useToast } from '@/hooks/use-toast';
-import { TicketDTO, ProjectDTO } from '@/types/api';
+import { useAuth } from '@/contexts/AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 interface CreateTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (ticketData: TicketDTO) => void; // Update type to match DTO
+  onSubmit: () => void;
+}
+
+interface Project {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+}
+
+// Updated to match TeamMemberSummaryDTO from backend
+interface ProjectMember {
+  userId: number;
+  name: string;
+  role: string;
+  avatar?: string;
+  email?: string;
 }
 
 export function CreateTicketModal({ isOpen, onClose, onSubmit }: CreateTicketModalProps) {
-  const { language, dir, t } = useLanguage();
-  const { userProfile } = useAuth();
-  const { toast } = useToast();
-
+  const token = localStorage.getItem('accessToken');
+  const { language, dir } = useLanguage();
   const [activeTab, setActiveTab] = useState('basic');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [projects, setProjects] = useState<ProjectDTO[]>([]);
+
+  // Data State
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
-    titleEn: '',
     description: '',
-    descriptionEn: '',
-    category: '',
-    priority: 'medium',
-    urgency: 'normal',
-    impact: 'medium',
+    category: 'other',
+    priority: 'MEDIUM',
     projectId: '',
-    assignedTo: '', // This should ideally be a User ID (number/string)
-    requesterName: '',
-    requesterEmail: '',
-    expectedResolution: '',
-    tags: ['']
+    assignedToId: '',
+    tags: [] as string[]
   });
 
-  // Fetch Projects for Dropdown
+  // 1. Initial Load: Fetch Assigned Projects
   useEffect(() => {
     if (isOpen) {
-      const loadProjects = async () => {
+      const fetchProjects = async () => {
         try {
-          const data = await api.projects.getAll();
-          setProjects(data || []);
-        } catch (error) {
-          console.error("Failed to load projects", error);
+          const response = await fetch(`${API_BASE_URL}/projects`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setProjects(Array.isArray(data) ? data : data.data || []);
+          }
+        } catch (e) {
+          console.error("Error fetching projects", e);
         }
       };
-      loadProjects();
+      fetchProjects();
+
+      // Reset dependent fields
+      setProjectMembers([]);
+      setFormData(prev => ({ ...prev, projectId: '', assignedToId: '' }));
     }
-  }, [isOpen]);
+  }, [isOpen, token]);
+
+  // 2. Dependent Load: Fetch Members when Project Changes
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!formData.projectId) {
+        setProjectMembers([]);
+        return;
+      }
+
+      setLoadingMembers(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/projects/${formData.projectId}/members`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Backend returns List<TeamMemberSummaryDTO>
+          setProjectMembers(Array.isArray(data) ? data : data.data || []);
+        } else {
+          setProjectMembers([]);
+        }
+      } catch (e) {
+        console.error("Error fetching project members", e);
+      } finally {
+        setLoadingMembers(false);
+      }
+    };
+
+    fetchMembers();
+  }, [formData.projectId, token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.title.trim() || !formData.description.trim()) {
-      toast({ variant: "destructive", title: "Error", description: language === 'ar' ? 'يرجى إدخال العنوان والوصف' : 'Please enter title and description' });
-      return;
-    }
-
-    if (!formData.projectId) {
-      toast({ variant: "destructive", title: "Error", description: language === 'ar' ? 'يرجى اختيار المشروع' : 'Please select a project' });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      // 1. Generate UUID from React
-      const ticketId = crypto.randomUUID();
-
-      // 2. Prepare Data for Backend (Map Form to TicketDTO)
-      // Note: We combine extra fields into description since Backend Entity might not have them all yet
-      const richDescription = `
-${formData.description}
-
---- Additional Details ---
-Requester: ${formData.requesterName} (${formData.requesterEmail})
-Impact: ${formData.impact}
-Urgency: ${formData.urgency}
-Expected Resolution: ${formData.expectedResolution}
-        `.trim();
-
-      const ticketPayload: Partial<TicketDTO> = {
-        id: ticketId, // Sending the client-generated UUID
+      // ✅ FIX: Structure payload to match TicketDTO nested objects
+      const payload = {
         title: formData.title,
-        description: richDescription,
-        status: 'open',
-        priority: formData.priority as any,
+        titleEn: formData.title, // Fallback if backend requires both
+        description: formData.description,
+        descriptionEn: formData.description,
         category: formData.category,
-        projectId: formData.projectId, // UUID string
-        createdBy: userProfile?.id ? Number(userProfile.id) : undefined, // Assuming userProfile.id maps to backend User ID
-        assignedTo: formData.assignedTo ? Number(formData.assignedTo) : undefined,
-        createdAt: new Date().toISOString()
+        priority: formData.priority.toUpperCase(),
+        status: 'OPEN',
+        // Map Project ID to nested object
+        project: {
+          id: formData.projectId
+        },
+        // Map Assigned User ID to nested object
+        assignedTo: formData.assignedToId ? {
+          id: formData.assignedToId
+        } : null,
+        tags: formData.tags
       };
 
-      // 3. Send to Backend Service
-      const createdTicket = await api.tickets.create(ticketPayload);
+      const response = await fetch(`${API_BASE_URL}/tickets`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-      // 4. Update UI
-      onSubmit(createdTicket); // Pass back to parent to update list
-      toast({ title: "Success", description: language === 'ar' ? 'تم إنشاء التذكرة بنجاح' : 'Ticket created successfully' });
-      onClose();
-      resetForm();
-
+      if (response.ok) {
+        alert(language === 'ar' ? 'تم إنشاء التذكرة بنجاح' : 'Ticket created successfully');
+        setFormData({
+          title: '', description: '', category: 'other', priority: 'MEDIUM', projectId: '', assignedToId: '', tags: []
+        });
+        onSubmit();
+      } else {
+        const err = await response.json();
+        alert(err.message || 'Error creating ticket');
+      }
     } catch (error) {
-      console.error("Create Ticket Error:", error);
-      toast({ variant: "destructive", title: "Error", description: language === 'ar' ? 'فشل إنشاء التذكرة' : 'Failed to create ticket' });
+      console.error("Failed to create ticket:", error);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: '', titleEn: '', description: '', descriptionEn: '', category: '',
-      priority: 'medium', urgency: 'normal', impact: 'medium',
-      projectId: '', assignedTo: '', requesterName: '', requesterEmail: '',
-      expectedResolution: '', tags: ['']
-    });
-  };
-
-  // Helper Handlers
-  const addTag = () => setFormData(prev => ({ ...prev, tags: [...prev.tags, ''] }));
-  const removeTag = (index: number) => setFormData(prev => ({ ...prev, tags: prev.tags.filter((_, i) => i !== index) }));
-  const updateTag = (index: number, value: string) => setFormData(prev => ({ ...prev, tags: prev.tags.map((tag, i) => i === index ? value : tag) }));
-
-  const getPriorityBadge = (priority: string) => {
-    const colors: Record<string, string> = {
-      low: 'bg-green-100 text-green-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      high: 'bg-orange-100 text-orange-800',
-      urgent: 'bg-red-100 text-red-800'
-    };
-    return (
-      <Badge variant="outline" className={colors[priority] || colors.medium}>
-        <Flag className="w-3 h-3 mr-1" />
-        {priority}
-      </Badge>
-    );
   };
 
   return (
@@ -166,45 +173,25 @@ Expected Resolution: ${formData.expectedResolution}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="basic">{language === 'ar' ? 'المعلومات الأساسية' : 'Basic Info'}</TabsTrigger>
               <TabsTrigger value="assignment">{language === 'ar' ? 'التكليف والأولوية' : 'Assignment'}</TabsTrigger>
-              <TabsTrigger value="details">{language === 'ar' ? 'تفاصيل إضافية' : 'Additional Details'}</TabsTrigger>
             </TabsList>
 
-            {/* --- TAB 1: BASIC INFO --- */}
             <TabsContent value="basic" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5" />
-                    {language === 'ar' ? 'تفاصيل التذكرة' : 'Ticket Details'}
-                  </CardTitle>
+                  <CardTitle>{language === 'ar' ? 'تفاصيل التذكرة' : 'Ticket Details'}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">{language === 'ar' ? 'عنوان التذكرة' : 'Ticket Title'} *</Label>
-                      <Input
-                        id="title"
-                        value={formData.title}
-                        onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                        placeholder={language === 'ar' ? 'أدخل عنوان التذكرة' : 'Enter ticket title'}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="category">{language === 'ar' ? 'فئة التذكرة' : 'Category'}</Label>
-                      <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                        <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="technical">Technical Issue</SelectItem>
-                          <SelectItem value="policy">Policy Question</SelectItem>
-                          <SelectItem value="access">System Access</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="title">{language === 'ar' ? 'عنوان التذكرة' : 'Ticket Title'} *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      required
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -213,193 +200,106 @@ Expected Resolution: ${formData.expectedResolution}
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Describe the issue..."
                       rows={4}
                       required
                     />
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Requester Info */}
-              <Card>
-                <CardHeader><CardTitle className="text-base">{language === 'ar' ? 'معلومات مقدم الطلب' : 'Requester Info'}</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>{language === 'ar' ? 'الاسم' : 'Name'}</Label>
-                    <Input value={formData.requesterName} onChange={(e) => setFormData(prev => ({ ...prev, requesterName: e.target.value }))} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</Label>
-                    <Input value={formData.requesterEmail} onChange={(e) => setFormData(prev => ({ ...prev, requesterEmail: e.target.value }))} />
+                    <Label>{language === 'ar' ? 'فئة التذكرة' : 'Category'}</Label>
+                    <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="technical">{language === 'ar' ? 'مشكلة تقنية' : 'Technical Issue'}</SelectItem>
+                        <SelectItem value="policy">{language === 'ar' ? 'استفسار سياسة' : 'Policy Question'}</SelectItem>
+                        <SelectItem value="other">{language === 'ar' ? 'أخرى' : 'Other'}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* --- TAB 2: ASSIGNMENT --- */}
             <TabsContent value="assignment" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Flag className="w-5 h-5" />
-                    {language === 'ar' ? 'الأولوية والتكليف' : 'Priority & Assignment'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>{language === 'ar' ? 'الأولوية' : 'Priority'}</Label>
-                      <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{language === 'ar' ? 'الإلحاح' : 'Urgency'}</Label>
-                      <Select value={formData.urgency} onValueChange={(value) => setFormData(prev => ({ ...prev, urgency: value }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="normal">Normal</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="critical">Critical</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{language === 'ar' ? 'التأثير' : 'Impact'}</Label>
-                      <Select value={formData.impact} onValueChange={(value) => setFormData(prev => ({ ...prev, impact: value }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
+                <CardContent className="space-y-4 pt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    {/* Project Selection */}
                     <div className="space-y-2">
                       <Label>{language === 'ar' ? 'المشروع المرتبط' : 'Related Project'} *</Label>
-                      <Select value={formData.projectId} onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value }))}>
+                      <Select
+                        value={formData.projectId}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, projectId: value, assignedToId: '' }))}
+                        required
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder={language === 'ar' ? 'اختر المشروع' : 'Select Project'} />
                         </SelectTrigger>
                         <SelectContent>
                           {projects.map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            <SelectItem key={p.id} value={p.id}>
+                              {language === 'ar' ? p.titleAr || p.titleEn : p.titleEn}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Member Selection */}
+                    <div className="space-y-2">
+                      <Label>{language === 'ar' ? 'تعيين إلى' : 'Assign To'}</Label>
+                      <Select
+                        value={formData.assignedToId}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, assignedToId: value }))}
+                        disabled={!formData.projectId || loadingMembers}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={
+                            loadingMembers
+                              ? (language === 'ar' ? 'جاري التحميل...' : 'Loading members...')
+                              : (language === 'ar' ? 'اختر الموظف' : 'Select User')
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projectMembers.map(member => (
+                            <SelectItem key={member.userId} value={member.userId.toString()}>
+                              {member.name} ({member.role})
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label>{language === 'ar' ? 'مكلف بالمتابعة' : 'Assigned To'}</Label>
-                      {/* Note: In a real app, fetch users from API to populate this */}
-                      <Select value={formData.assignedTo} onValueChange={(value) => setFormData(prev => ({ ...prev, assignedTo: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={language === 'ar' ? 'اختر المكلف' : 'Select Assignee'} />
-                        </SelectTrigger>
+                      <Label>{language === 'ar' ? 'الأولوية' : 'Priority'}</Label>
+                      <Select value={formData.priority} onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="1">Admin User</SelectItem>
-                          <SelectItem value="2">Consultant</SelectItem>
+                          <SelectItem value="LOW">{language === 'ar' ? 'منخفضة' : 'Low'}</SelectItem>
+                          <SelectItem value="MEDIUM">{language === 'ar' ? 'متوسطة' : 'Medium'}</SelectItem>
+                          <SelectItem value="HIGH">{language === 'ar' ? 'عالية' : 'High'}</SelectItem>
+                          <SelectItem value="URGENT">{language === 'ar' ? 'عاجلة' : 'Urgent'}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            {/* --- TAB 3: DETAILS --- */}
-            <TabsContent value="details" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    {language === 'ar' ? 'تفاصيل إضافية' : 'Additional Details'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>{language === 'ar' ? 'الحل المتوقع' : 'Expected Resolution'}</Label>
-                    <Textarea
-                      value={formData.expectedResolution}
-                      onChange={(e) => setFormData(prev => ({ ...prev, expectedResolution: e.target.value }))}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>{language === 'ar' ? 'المرفقات' : 'Attachments'}</Label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 mb-2">
-                        {language === 'ar' ? 'سيتم تفعيل رفع الملفات قريباً' : 'File upload enabled in ticket details view'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Tags */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label>{language === 'ar' ? 'العلامات' : 'Tags'}</Label>
-                      <Button type="button" onClick={addTag} size="sm" variant="outline">
-                        <Plus className="w-4 h-4 mr-2" />
-                        {language === 'ar' ? 'إضافة علامة' : 'Add Tag'}
-                      </Button>
-                    </div>
-                    {formData.tags.map((tag, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Input
-                          value={tag}
-                          onChange={(e) => updateTag(index, e.target.value)}
-                          placeholder={`Tag ${index + 1}`}
-                        />
-                        {formData.tags.length > 1 && (
-                          <Button type="button" onClick={() => removeTag(index)} size="sm" variant="outline" className="text-red-600">
-                            X
-                          </Button>
-                        )}
-                      </div>
-                    ))}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
 
-          {/* Form Actions */}
-          <div className="flex items-center justify-between pt-6 border-t">
-            <div className="flex items-center gap-2">
-              {getPriorityBadge(formData.priority)}
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
-              </Button>
-              <Button type="submit" className="bg-[#1B4FFF] hover:bg-[#0A1E39]" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {language === 'ar' ? 'جاري الإنشاء...' : 'Creating...'}
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    {language === 'ar' ? 'إنشاء التذكرة' : 'Create Ticket'}
-                  </>
-                )}
-              </Button>
-            </div>
+          <div className="flex items-center justify-end gap-4 pt-6 border-t">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+            </Button>
+            <Button type="submit" className="bg-[#1B4FFF] hover:bg-[#0A1E39]" disabled={isSubmitting}>
+              <Save className="w-4 h-4 mr-2" />
+              {isSubmitting ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'إنشاء التذكرة' : 'Create Ticket')}
+            </Button>
           </div>
         </form>
       </DialogContent>
