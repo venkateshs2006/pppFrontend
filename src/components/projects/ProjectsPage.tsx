@@ -194,7 +194,7 @@ export function ProjectsPage() {
   // --- Stats Calculation ---
   const stats = {
     total: projects.length,
-    active: projects.filter(p => p.status?.toLowerCase() === 'active').length,
+    active: projects.filter(p => (p.status?.toLowerCase() === 'planning' || p.status?.toLowerCase() === 'active')).length,
     completed: projects.filter(p => p.status?.toLowerCase() === 'completed').length,
     totalBudget: projects.reduce((sum, p) => sum + (p.budget || 0), 0),
   };
