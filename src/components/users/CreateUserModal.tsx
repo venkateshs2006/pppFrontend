@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,46 +6,117 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, UserPlus } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { CreateUserDTO } from '@/services/UserService';
-const navigate = useNavigate();
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
 interface CreateUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CreateUserDTO) => Promise<void>;
 }
 
+interface RoleOption {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+interface ClientOption {
+  id: number;
+  name: string;
+  organization: string;
+}
+
 export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalProps) {
   const { dir } = useLanguage();
+  const { token, userProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize state with empty values matching your DTO structure
-  // Note: We only initialize the fields that are entered in the form.
-  // Backend should handle createdAt, lastLoginAt, isActive, etc.
-  const [formData, setFormData] = useState<Partial<CreateUserDTO>>({
+  // Data for dropdowns
+  const [roleOptions, setRoleOptions] = useState<RoleOption[]>([]);
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+
+  // Form State
+  const [formData, setFormData] = useState({
     username: '',
     email: '',
     firstName: '',
     lastName: '',
     phoneNumber: '',
-    jobTitle: '',
-    organization: '',
+    selectedRole: '', // Temporary state for UI selection
+    organizationName: '', // Maps to department/organization
     password: '',
-    isActive: true, // Default to active
-    roles: null,
-    avatarUrl: null
+    isActive: true
   });
+
+  // Fetch Roles and Clients when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const fetchData = async () => {
+        try {
+          // 1. Fetch Roles
+          // Assuming an endpoint exists. If not, this might need to be a static list based on RoleType enum
+          const rolesRes = await fetch(`${API_BASE_URL}/roles`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (rolesRes.ok) {
+            const data = await rolesRes.json();
+            setRoleOptions(data);
+          } else {
+            // Fallback if API fails or doesn't exist yet
+            console.warn("Could not fetch roles, using defaults");
+            setRoleOptions([
+              { id: 1, name: 'LEAD_CONSULTANT' },
+              { id: 2, name: 'SUB_CONSULTANT' },
+              { id: 3, name: 'MAIN_CLIENT' },
+              { id: 4, name: 'SUB_CLIENT' }
+            ]);
+          }
+
+          // 2. Fetch Clients (Organizations) - Only if user has permission
+          if (userProfile?.role === 'admin' || userProfile?.role === 'super_admin') {
+            const clientsRes = await fetch(`${API_BASE_URL}/clients`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (clientsRes.ok) {
+              const data = await clientsRes.json();
+              setClientOptions(data);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching form options:", error);
+        }
+      };
+
+      fetchData();
+    }
+  }, [isOpen, token, userProfile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Construct fullName before sending if required by DTO
-      const submissionData = {
-        ...formData,
+      // Prepare Payload matching Java UserDTO
+      const submissionData: any = {
+        username: formData.username,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         fullName: `${formData.firstName} ${formData.lastName}`,
-        createdAt: new Date().toISOString(), // Fallback if backend requires it in payload
-        lastLoginAt: null
-      } as CreateUserDTO;
+        phoneNumber: formData.phoneNumber,
+        password: formData.password,
+        isActive: formData.isActive,
+
+        // Map "Organization" selection to 'department' (or 'organization' if DTO updated)
+        // Since UserDTO has 'department' and 'organization' isn't explicitly in the DTO snippet provided previously
+        department: formData.organizationName,
+
+        // Map selected Role string to a List of Strings for the backend
+        roles: formData.selectedRole ? [formData.selectedRole] : []
+      };
 
       await onSubmit(submissionData);
 
@@ -56,14 +127,14 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
         firstName: '',
         lastName: '',
         phoneNumber: '',
-        jobTitle: '',
-        organization: '',
+        selectedRole: '',
+        organizationName: '',
         password: '',
         isActive: true
       });
       onClose();
     } catch (error) {
-      console.error(error);
+      console.error("Error creating user:", error);
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +152,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Username (New Field) */}
+          {/* Username */}
           <div className="space-y-2">
             <Label>{dir === 'rtl' ? 'اسم المستخدم' : 'Username'}</Label>
             <Input
@@ -92,7 +163,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
             />
           </div>
 
-          {/* Name Fields Row */}
+          {/* Name Fields */}
           <div className="flex gap-4">
             <div className="space-y-2 flex-1">
               <Label>{dir === 'rtl' ? 'الاسم الأول' : 'First Name'}</Label>
@@ -123,42 +194,60 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
             />
           </div>
 
-          {/* Phone Number */}
+          {/* Phone */}
           <div className="space-y-2">
             <Label>{dir === 'rtl' ? 'رقم الهاتف' : 'Phone Number'}</Label>
             <Input
-              value={formData.phoneNumber || ''}
+              value={formData.phoneNumber}
               onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
             />
           </div>
 
-          {/* Organization (New Field) */}
+          {/* Organization Selection (Dynamic) */}
           <div className="space-y-2">
-            <Label>{dir === 'rtl' ? 'المؤسسة' : 'Organization'}</Label>
-            <Input
-              required
-              value={formData.organization}
-              onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-              placeholder="e.g. PPP Consulting"
-            />
+            <Label>{dir === 'rtl' ? 'المؤسسة / العميل' : 'Organization / Client'}</Label>
+            {clientOptions.length > 0 ? (
+              <Select
+                value={formData.organizationName}
+                onValueChange={(val) => setFormData({ ...formData, organizationName: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={dir === 'rtl' ? 'اختر المؤسسة' : 'Select Organization'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientOptions.map((client) => (
+                    <SelectItem key={client.id} value={client.name}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                value={formData.organizationName}
+                onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
+                placeholder="Organization Name"
+              />
+            )}
           </div>
 
-          {/* Job Title */}
+          {/* Role Selection (Dynamic) */}
           <div className="space-y-2">
-            <Label>{dir === 'rtl' ? 'المسمى الوظيفي' : 'Job Title'}</Label>
+            <Label>{dir === 'rtl' ? 'الدور الوظيفي' : 'Role'}</Label>
             <Select
-              value={formData.jobTitle || ''}
-              onValueChange={(val) => setFormData({ ...formData, jobTitle: val })}
+              value={formData.selectedRole}
+              onValueChange={(val) => setFormData({ ...formData, selectedRole: val })}
+              required
             >
               <SelectTrigger>
-                <SelectValue placeholder={dir === 'rtl' ? 'اختر المسمى الوظيفي' : 'Select Job Title'} />
+                <SelectValue placeholder={dir === 'rtl' ? 'اختر الدور' : 'Select Role'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Senior Consultant">Lead Consultant (Senior)</SelectItem>
-                <SelectItem value="Specialist">Sub Consultant (Specialist)</SelectItem>
-                <SelectItem value="IT Director">Main Client (Director)</SelectItem>
-                <SelectItem value="Analyst">Analyst</SelectItem>
-                <SelectItem value="System Owner">System Owner</SelectItem>
+                {roleOptions.map((role) => (
+                  <SelectItem key={role.id || role.name} value={role.name}>
+                    {role.name.replace('_', ' ')}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
