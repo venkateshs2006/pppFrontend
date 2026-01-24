@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { deliverableService, Deliverable } from '@/services/deliverableService';
-import { Loader2, File as FileIcon, Link as LinkIcon } from 'lucide-react';
+import { Loader2, File as FileIcon, Percent } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 interface Props {
@@ -26,8 +26,9 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
         title: '',
         titleEn: '',
         description: '',
-        type: 'policy', // Lowercase default
-        status: 'draft' // Lowercase default
+        type: 'policy',
+        status: 'draft',
+        weightage: 0 // ✅ New State for Weightage
     });
 
     useEffect(() => {
@@ -37,9 +38,9 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
                     title: deliverable.title,
                     titleEn: deliverable.titleEn,
                     description: deliverable.description || '',
-                    // Ensure values are lowercase for the Select component
                     type: deliverable.type.toLowerCase(),
-                    status: deliverable.status.toLowerCase()
+                    status: deliverable.status.toLowerCase(),
+                    weightage: deliverable.weightage || 0 // ✅ Load existing weightage
                 });
             } else {
                 setFormData({
@@ -47,7 +48,8 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
                     titleEn: '',
                     description: '',
                     type: 'policy',
-                    status: 'draft'
+                    status: 'draft',
+                    weightage: 0
                 });
             }
             setFile(null);
@@ -56,17 +58,23 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Basic Validation
+        if (formData.weightage < 0 || formData.weightage > 100) {
+            toast({ variant: "destructive", title: "Invalid Weightage", description: "Weightage must be between 0 and 100" });
+            return;
+        }
+
         setLoading(true);
         try {
             let savedId = deliverable?.id;
 
-            // Prepare payload (convert type/status to UpperCase if your Backend requires it, 
-            // OR keep lowercase if you updated your Java Enums with @JsonCreator)
             const payload = {
                 ...formData,
                 projectId,
-                type: formData.type.toUpperCase(), // Sending Uppercase to be safe
-                status: formData.status.toUpperCase()
+                type: formData.type.toUpperCase(),
+                status: formData.status.toUpperCase(),
+                weightage: Number(formData.weightage) // ✅ Ensure number type
             };
 
             if (deliverable) {
@@ -78,16 +86,17 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
                 toast({ title: "Created successfully" });
             }
 
-            // Handle File Upload if a file was selected
             if (file && savedId) {
                 await deliverableService.uploadFile(savedId, file);
             }
 
             onSuccess();
             onOpenChange(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast({ variant: "destructive", title: "Error", description: "Operation failed" });
+            // Handle backend validation error (e.g., Total > 100%)
+            const msg = error.response?.data?.message || "Operation failed";
+            toast({ variant: "destructive", title: "Error", description: msg });
         } finally {
             setLoading(false);
         }
@@ -100,7 +109,6 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
                     <DialogTitle>{deliverable ? 'Edit Deliverable' : 'Add New Deliverable'}</DialogTitle>
                 </DialogHeader>
 
-                {/* FORM START */}
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
 
                     <div className="grid grid-cols-2 gap-4">
@@ -121,7 +129,8 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Type, Status, Weightage Row */}
+                    <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label>Type</Label>
                             <Select
@@ -138,6 +147,7 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
                                 </SelectContent>
                             </Select>
                         </div>
+
                         <div className="space-y-2">
                             <Label>Status</Label>
                             <Select
@@ -150,11 +160,27 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
                                     <SelectItem value="draft">Draft</SelectItem>
                                     <SelectItem value="in_progress">In Progress</SelectItem>
                                     <SelectItem value="review">Review</SelectItem>
+                                    <SelectItem value="redo">Redo</SelectItem>
                                     <SelectItem value="approved">Approved</SelectItem>
                                     <SelectItem value="rejected">Rejected</SelectItem>
-                                    <SelectItem value="closed">Closed</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        {/* ✅ Weightage Input */}
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-1">
+                                Weightage <Percent className="w-3 h-3 text-gray-500" />
+                            </Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                value={formData.weightage}
+                                onChange={e => setFormData({ ...formData, weightage: Number(e.target.value) })}
+                            />
                         </div>
                     </div>
 
@@ -167,7 +193,6 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
                         />
                     </div>
 
-                    {/* File Upload Section */}
                     <div className="space-y-2 border p-4 rounded-md bg-gray-50">
                         <Label>Attachment</Label>
                         {deliverable?.fileName && (
@@ -198,8 +223,6 @@ export function DeliverableFormDialog({ open, onOpenChange, projectId, deliverab
                     </DialogFooter>
 
                 </form>
-                {/* FORM END - Ensure this tag exists! */}
-
             </DialogContent>
         </Dialog>
     );

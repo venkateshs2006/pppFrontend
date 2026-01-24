@@ -3,18 +3,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Calendar, DollarSign, FolderOpen, ExternalLink, Loader2 } from 'lucide-react';
+import { Search, Calendar, DollarSign, FolderOpen, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 import { ApiClient } from '@/services/clientService';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 
-// --- Mock Project Interface (Replace with your actual Project Type) ---
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
+// Interface matching Backend ProjectResponseDTO structure
 interface Project {
     id: string;
-    name: string;
-    status: 'Not Started' | 'In Progress' | 'Completed' | 'On Hold';
+    titleEn?: string; // Marked optional to handle potential nulls safely
+    titleAr?: string;
+    status: string;
     startDate: string;
+    endDate: string;
     budget: number;
+    spent: number;
     progress: number;
+    client?: {
+        id: number;
+        name: string;
+    };
+    organizationId?: number;
 }
 
 interface ViewProjectsDialogProps {
@@ -25,46 +36,101 @@ interface ViewProjectsDialogProps {
 
 export function ViewProjectsDialog({ open, onOpenChange, org }: ViewProjectsDialogProps) {
     const { dir } = useLanguage();
+    const token = localStorage.getItem('accessToken');
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [error, setError] = useState('');
 
     // --- Fetch Projects Logic ---
     useEffect(() => {
         if (open && org) {
             setLoading(true);
-            // TODO: Replace with actual API call: 
-            // await axios.get(`/api/projects?organizationId=${org.id}`)
+            setError('');
+            setProjects([]); // Clear previous state
 
-            // Simulating API delay and response
-            setTimeout(() => {
-                const mockProjects: Project[] = Array.from({ length: org.projectsCount || 0 }).map((_, i) => ({
-                    id: `proj-${i}`,
-                    name: `${org.name} - Phase ${i + 1} Implementation`,
-                    status: i === 0 ? 'In Progress' : (i < 3 ? 'Completed' : 'Not Started'),
-                    startDate: '2025-01-15',
-                    budget: 50000 + (i * 10000),
-                    progress: i === 0 ? 45 : (i < 3 ? 100 : 0)
-                }));
-                setProjects(mockProjects);
-                setLoading(false);
-            }, 800);
+            const fetchProjects = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/projects`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Handle both list wrapped in 'data' or direct list
+                        const allProjects: Project[] = Array.isArray(data) ? data : (data.data || []);
+
+                        console.log("All Projects Fetched:", allProjects); // 🔍 Debug Log 1
+                        console.log("Filtering for Org ID:", org.id);      // 🔍 Debug Log 2
+
+                        // Filter projects belonging to this organization
+                        const orgProjects = allProjects.filter(p => {
+                            const projectClientId = p.client?.id || p.organizationId;
+                            // Use loose equality (==) to match string "5" with number 5
+                            return projectClientId == org.id;
+                        });
+
+                        console.log("Matches Found:", orgProjects);        // 🔍 Debug Log 3
+                        setProjects(orgProjects);
+                    } else {
+                        setError('Failed to fetch projects');
+                    }
+                } catch (err) {
+                    console.error("Error loading projects:", err);
+                    setError('Network error occurred');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            fetchProjects();
         }
-    }, [open, org]);
+    }, [open, org, token]);
 
+    // Helper to format status badges
     const getStatusBadge = (status: string) => {
-        const styles = {
-            'In Progress': 'bg-blue-100 text-blue-800',
-            'Completed': 'bg-green-100 text-green-800',
-            'Not Started': 'bg-gray-100 text-gray-800',
-            'On Hold': 'bg-yellow-100 text-yellow-800'
+        const normalizedStatus = status?.toUpperCase() || 'UNKNOWN';
+
+        const styles: Record<string, string> = {
+            'IN_PROGRESS': 'bg-blue-100 text-blue-800 border-blue-200',
+            'COMPLETED': 'bg-green-100 text-green-800 border-green-200',
+            'PLANNED': 'bg-gray-100 text-gray-800 border-gray-200',
+            'ON_HOLD': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+            'CANCELLED': 'bg-red-100 text-red-800 border-red-200'
         };
-        return <Badge className={styles[status as keyof typeof styles] || ''}>{status}</Badge>;
+
+        const displayLabel: Record<string, string> = {
+            'IN_PROGRESS': 'In Progress',
+            'COMPLETED': 'Completed',
+            'PLANNED': 'Planned',
+            'ON_HOLD': 'On Hold',
+            'CANCELLED': 'Cancelled'
+        };
+
+        return (
+            <Badge variant="outline" className={styles[normalizedStatus] || 'bg-gray-100'}>
+                {displayLabel[normalizedStatus] || normalizedStatus}
+            </Badge>
+        );
     };
 
-    const filteredProjects = projects.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric'
+        });
+    };
+
+    // Safe Filtering to prevent crashes on null titles
+    const filteredProjects = projects.filter(p => {
+        const term = searchTerm.toLowerCase();
+        const enTitle = p.titleEn ? p.titleEn.toLowerCase() : '';
+        const arTitle = p.titleAr ? p.titleAr : '';
+        return enTitle.includes(term) || arTitle.includes(term);
+    });
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,16 +138,16 @@ export function ViewProjectsDialog({ open, onOpenChange, org }: ViewProjectsDial
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         <FolderOpen className="w-5 h-5 text-blue-600" />
-                        {org ? `Projects: ${org.name}` : 'Projects'}
+                        {org ? `${dir === 'rtl' ? 'مشاريع:' : 'Projects:'} ${org.name}` : (dir === 'rtl' ? 'المشاريع' : 'Projects')}
                     </DialogTitle>
                 </DialogHeader>
 
                 {/* Search Bar */}
                 <div className="relative my-2">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className={`absolute ${dir === 'rtl' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
                     <Input
-                        placeholder="Search projects..."
-                        className="pl-9"
+                        placeholder={dir === 'rtl' ? 'بحث عن المشاريع...' : "Search projects..."}
+                        className={dir === 'rtl' ? 'pr-9' : 'pl-9'}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -92,37 +158,58 @@ export function ViewProjectsDialog({ open, onOpenChange, org }: ViewProjectsDial
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-full text-gray-400">
                             <Loader2 className="w-8 h-8 animate-spin mb-2" />
-                            <p>Loading projects...</p>
+                            <p>{dir === 'rtl' ? 'جاري تحميل المشاريع...' : 'Loading projects...'}</p>
+                        </div>
+                    ) : error ? (
+                        <div className="flex flex-col items-center justify-center h-full text-red-500">
+                            <AlertCircle className="w-8 h-8 mb-2" />
+                            <p>{error}</p>
                         </div>
                     ) : filteredProjects.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-gray-400">
                             <FolderOpen className="w-12 h-12 mb-2 opacity-20" />
-                            <p>No projects found for this organization.</p>
+                            <p>{dir === 'rtl' ? 'لا توجد مشاريع لهذه المؤسسة.' : 'No projects found for this organization.'}</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
                             {filteredProjects.map((project) => (
                                 <div key={project.id} className="group flex items-center justify-between p-4 rounded-lg border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <h4 className="font-semibold text-gray-900">{project.name}</h4>
+                                    <div className="space-y-1 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h4 className="font-semibold text-gray-900">
+                                                {/* Safe Title Rendering */}
+                                                {dir === 'rtl'
+                                                    ? (project.titleAr || project.titleEn || 'Untitled')
+                                                    : (project.titleEn || project.titleAr || 'Untitled')}
+                                            </h4>
                                             {getStatusBadge(project.status)}
                                         </div>
-                                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {project.startDate}</span>
-                                            <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> ${project.budget.toLocaleString()}</span>
+                                        <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
+                                            <span className="flex items-center gap-1">
+                                                <Calendar className="w-3 h-3" />
+                                                {formatDate(project.startDate)}
+                                            </span>
+                                            {project.budget !== null && project.budget !== undefined && (
+                                                <span className="flex items-center gap-1">
+                                                    <DollarSign className="w-3 h-3" />
+                                                    {project.budget.toLocaleString()}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4">
-                                        {/* Progress Bar (Visual only) */}
+                                    <div className="flex items-center gap-4 ml-2">
+                                        {/* Progress Bar */}
                                         <div className="w-24 hidden sm:block">
                                             <div className="flex justify-between text-xs mb-1">
-                                                <span>Progress</span>
-                                                <span>{project.progress}%</span>
+                                                <span>{dir === 'rtl' ? 'الإنجاز' : 'Progress'}</span>
+                                                <span>{project.progress || 0}%</span>
                                             </div>
                                             <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${project.progress}%` }} />
+                                                <div
+                                                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                                                    style={{ width: `${project.progress || 0}%` }}
+                                                />
                                             </div>
                                         </div>
 
@@ -137,7 +224,9 @@ export function ViewProjectsDialog({ open, onOpenChange, org }: ViewProjectsDial
                 </div>
 
                 <div className="flex justify-end pt-2 border-t mt-2">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                        {dir === 'rtl' ? 'إغلاق' : 'Close'}
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>

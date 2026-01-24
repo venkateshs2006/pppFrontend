@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,9 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Plus, Save, FileText, Upload, AlertCircle, CheckCircle, Clock
-} from 'lucide-react';
+import { Plus, Save, FileText, Upload, AlertCircle, CheckCircle, Clock, Percent } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { DeliverableDTO } from '@/types/api';
 
@@ -19,11 +17,13 @@ interface CreateDeliverableModalProps {
   onClose: () => void;
   onSubmit: (data: Partial<DeliverableDTO>) => void;
   parentId?: string;
+  projectId: string; // ✅ Added projectId prop (Required for weightage check)
 }
 
-export function CreateDeliverableModal({ isOpen, onClose, onSubmit, parentId }: CreateDeliverableModalProps) {
+export function CreateDeliverableModal({ isOpen, onClose, onSubmit, parentId, projectId }: CreateDeliverableModalProps) {
   const { language, dir } = useLanguage();
   const [activeTab, setActiveTab] = useState('basic');
+
   const [formData, setFormData] = useState({
     title: '',
     titleEn: '',
@@ -32,12 +32,19 @@ export function CreateDeliverableModal({ isOpen, onClose, onSubmit, parentId }: 
     type: 'guide',
     status: 'draft',
     version: '1.0',
+    weightage: 0, // ✅ New State
     notes: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title) return;
+
+    // Optional Frontend Validation
+    if (formData.weightage < 0 || formData.weightage > 100) {
+      alert(language === 'ar' ? 'الوزن يجب أن يكون بين 0 و 100' : 'Weightage must be between 0 and 100');
+      return;
+    }
 
     const payload: Partial<DeliverableDTO> = {
       title: formData.title,
@@ -47,8 +54,9 @@ export function CreateDeliverableModal({ isOpen, onClose, onSubmit, parentId }: 
       type: formData.type as any,
       status: formData.status,
       version: formData.version,
-      parentId: parentId, // Passed from parent if sub-item
-      // Note: orderIndex usually handled by backend or calculated here
+      weightage: Number(formData.weightage), // ✅ Send weightage
+      parentId: parentId,
+      projectId: projectId // ✅ Send projectId
     };
 
     onSubmit(payload);
@@ -64,6 +72,7 @@ export function CreateDeliverableModal({ isOpen, onClose, onSubmit, parentId }: 
       type: 'guide',
       status: 'draft',
       version: '1.0',
+      weightage: 0,
       notes: ''
     });
   };
@@ -119,7 +128,7 @@ export function CreateDeliverableModal({ isOpen, onClose, onSubmit, parentId }: 
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
                       <Label>{language === 'ar' ? 'النوع' : 'Type'}</Label>
                       <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
@@ -133,6 +142,23 @@ export function CreateDeliverableModal({ isOpen, onClose, onSubmit, parentId }: 
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* ✅ New Weightage Field */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1">
+                        {language === 'ar' ? 'الوزن' : 'Weightage'} (%)
+                        <Percent className="w-3 h-3 text-gray-400" />
+                      </Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={formData.weightage}
+                        onChange={(e) => setFormData(prev => ({ ...prev, weightage: parseFloat(e.target.value) }))}
+                      />
+                    </div>
+
                     <div className="space-y-2">
                       <Label>{language === 'ar' ? 'الحالة' : 'Status'}</Label>
                       <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}>
