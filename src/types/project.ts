@@ -55,6 +55,7 @@ export interface Project {
     completedTasks: number;
     tickets: number;
     openTickets: number;
+    closedTickets: number;
 }
 
 // The "Write" Model (Matches ProjectDTO for Create/Update)

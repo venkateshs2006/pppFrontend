@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,15 +15,13 @@ import { EditProjectModal } from './EditProjectModal';
 import { ProjectActionsMenu } from './ProjectActionsMenu';
 import { ManageTeamModal } from './ManageTeamModal';
 import {
-  Plus, Search, Calendar, DollarSign, Users, BarChart3, Eye, Edit, Clock, Target, TrendingUp, AlertTriangle, CheckCircle2
+  Plus, Search, Calendar, DollarSign, Users, BarChart3, Eye, Edit, Clock, Target, TrendingUp, AlertTriangle, CheckCircle2, Ticket
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { projectService } from '@/services/projectService';
-// Ensure you have this type defined or adapt the interface below
 import { Project } from '@/types/project';
 
-// --- Permissions Helpers ---
 const canEditProjects = (userRole: string) =>
   ['super_admin', 'admin', 'lead_consultant'].includes(userRole);
 
@@ -30,6 +29,7 @@ export function ProjectsPage() {
   const { userProfile, hasPermission } = useAuth();
   const { t, dir } = useLanguage();
   const { toast } = useToast();
+  const navigate = useNavigate(); // 2. Initialize Navigation
 
   // --- State ---
   const [projects, setProjects] = useState<Project[]>([]);
@@ -89,7 +89,7 @@ export function ProjectsPage() {
         budget: parseFloat(projectData.budget)
       };
 
-      //  await projectService.createProject(dto);
+      // await projectService.createProject(dto); // Uncomment when real service is ready
 
       toast({
         title: dir === 'rtl' ? 'نجاح' : 'Success',
@@ -120,7 +120,7 @@ export function ProjectsPage() {
     } catch (error) {
       toast({
         title: dir === 'rtl' ? 'خطأ' : 'Error',
-        description: dir === 'rtl' ? 'فشل تحديث المشروع' : 'Failed to update project',
+        description: dir === 'rtl' ? 'فشل تحديث المشروع ' + error.response.data.message : 'Failed to update project ' + error.response.data.message,
         variant: "destructive"
       });
     }
@@ -146,10 +146,14 @@ export function ProjectsPage() {
   };
 
   const handleSaveTeam = async (members: any[]) => {
-    // Logic to save team members (usually handled inside ManageTeamModal or via specific service)
-    // If ManageTeamModal handles the API call internally, just close the modal here.
     setShowManageTeamModal(false);
-    fetchProjects(); // Refresh to show new team count
+    fetchProjects();
+  };
+
+  // --- 4. Navigation Handlers ---
+  const handleManageDeliverables = (project: Project) => {
+    // Navigate to Deliverables page with projectId param
+    navigate(`/deliverables?projectId=${project.id}`);
   };
 
   // --- Helpers ---
@@ -358,23 +362,34 @@ export function ProjectsPage() {
                     </div>
                   </div>
 
-                  {/* Detailed Project Stats (4 Grid Layout) */}
+                  {/* Detailed Project Stats (Updated Tickets Count) */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-gray-400" />
+                    {/* Deliverables */}
+                    <div className="flex items-center gap-2" title="Completed Deliverables">
+                      <Target className="w-4 h-4 text-blue-400" />
                       <span>{project.completedDeliverables}/{project.deliverables} {dir === 'rtl' ? 'مخرجات' : 'deliverables'}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-gray-400" />
-                      <span>{project.completedTasks}/{project.tasks} {dir === 'rtl' ? 'مهام' : 'tasks'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-gray-400" />
-                      <span>{project.openTickets}/{project.tickets} {dir === 'rtl' ? 'تذاكر' : 'tickets'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-gray-400" />
+
+                    {/* Team */}
+                    <div className="flex items-center gap-2" title="Team Members">
+                      <Users className="w-4 h-4 text-purple-400" />
                       <span>{(project.team?.length || 0) + 1} {dir === 'rtl' ? 'أعضاء' : 'members'}</span>
+                    </div>
+
+                    {/* Total Tickets (Open) */}
+                    <div className="flex items-center gap-2" title="Total Tickets">
+                      <Ticket className="w-4 h-4 text-orange-400" />
+                      <span className="truncate">
+                        {project.tickets || 0} {dir === 'rtl' ? 'تذاكر' : 'Tickets'}
+                      </span>
+                    </div>
+
+                    {/* Closed Tickets */}
+                    <div className="flex items-center gap-2" title="Closed Tickets">
+                      <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      <span className="truncate">
+                        {project.closedTickets || 0} {dir === 'rtl' ? 'مغلقة' : 'Closed'}
+                      </span>
                     </div>
                   </div>
 
@@ -407,7 +422,6 @@ export function ProjectsPage() {
                     <div className="flex items-center gap-1">
                       <span className="text-sm text-gray-600 mr-2">{t('projects.team')}:</span>
                       <div className="flex -space-x-2">
-                        {/* Consultant Avatar */}
                         {project.consultant && (
                           <Avatar className="w-6 h-6 border-2 border-white">
                             <AvatarFallback className="bg-purple-100 text-purple-600 text-[10px]">
@@ -415,7 +429,6 @@ export function ProjectsPage() {
                             </AvatarFallback>
                           </Avatar>
                         )}
-                        {/* Team Members Avatars */}
                         {project.team?.slice(0, 3).map((member: any, index: number) => (
                           <Avatar key={index} className="w-6 h-6 border-2 border-white">
                             <AvatarFallback className="bg-gray-100 text-gray-600 text-[10px]">
@@ -423,7 +436,6 @@ export function ProjectsPage() {
                             </AvatarFallback>
                           </Avatar>
                         ))}
-                        {/* Overflow Counter */}
                         {project.team && project.team.length > 3 && (
                           <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
                             <span className="text-[10px] text-gray-600">+{project.team.length - 3}</span>
@@ -465,7 +477,8 @@ export function ProjectsPage() {
                         onEdit={() => { setSelectedProject(project); setShowEditModal(true); }}
                         onDelete={() => handleDelete(project)}
                         onManageTeam={() => { setSelectedProject(project); setShowManageTeamModal(true); }}
-                        onManageTasks={() => { }}
+                        // 3. Updated Action: Redirect to Deliverables Page
+                        onManageTasks={() => handleManageDeliverables(project)}
                         onViewReports={() => { }}
                         onArchive={() => { }}
                         onDuplicate={() => { }}

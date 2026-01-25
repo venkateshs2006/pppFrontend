@@ -15,7 +15,7 @@ export interface ApiUser {
     isActive: boolean;
     lastLoginAt?: string;
     createdAt: string;
-    roles: string[];
+    roles: string;
     avatarUrl?: string;
 }
 
@@ -27,7 +27,7 @@ export interface CreateUpdateUserRequest {
     lastName: string;
     phoneNumber?: string;
     department?: string;
-    roles: string[];
+    roles: string;
     isActive?: boolean;
 }
 

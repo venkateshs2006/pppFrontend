@@ -5,19 +5,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { CreateUpdateUserRequest, ApiUser } from '@/services/userService';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Edit, UserPlus } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
+// --- Interfaces ---
+interface UserDTO {
+  id?: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  password?: string;
+  isActive: boolean;
+  role: string;
+  clientId?: number; // ✅ Changed from organizationId to clientId
+  jobTitle?: string;
+}
+
 interface UserFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  userToEdit?: ApiUser | null;
-  onSubmit: (data: CreateUpdateUserRequest) => Promise<void>;
+  userToEdit?: any | null;
+  onSubmit: (data: any) => Promise<void>;
 }
 
 interface RoleOption {
@@ -45,17 +58,17 @@ export function UserFormDialog({ open, onOpenChange, userToEdit, onSubmit }: Use
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Form State
-  const [formData, setFormData] = useState<CreateUpdateUserRequest & { selectedRole: string }>({
+  const [formData, setFormData] = useState({
     username: '',
     email: '',
     firstName: '',
     lastName: '',
     phoneNumber: '',
-    department: '',
+    jobTitle: '',
     password: '',
     isActive: true,
-    roles: [],
-    selectedRole: ''
+    role: '',
+    clientId: '' // ✅ Renamed state variable
   });
 
   // 1. Fetch Options
@@ -66,18 +79,12 @@ export function UserFormDialog({ open, onOpenChange, userToEdit, onSubmit }: Use
           const rolesRes = await fetch(`${API_BASE_URL}/roles`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
-          if (rolesRes.ok) {
-            const data = await rolesRes.json();
-            setRoleOptions(data);
-          }
+          if (rolesRes.ok) setRoleOptions(await rolesRes.json());
 
           const clientsRes = await fetch(`${API_BASE_URL}/clients`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
-          if (clientsRes.ok) {
-            const data = await clientsRes.json();
-            setClientOptions(data);
-          }
+          if (clientsRes.ok) setClientOptions(await clientsRes.json());
         } catch (error) {
           console.error("Error fetching options:", error);
         }
@@ -86,42 +93,53 @@ export function UserFormDialog({ open, onOpenChange, userToEdit, onSubmit }: Use
     }
   }, [open, token]);
 
-  // 2. Populate Form
+  // 2. Populate Form on Edit
   useEffect(() => {
     if (open) {
       setConfirmPassword('');
       setIsResettingPassword(false);
 
       if (userToEdit) {
-        const currentRole = userToEdit.roles && userToEdit.roles.length > 0
-          ? userToEdit.roles[0]
-          : '';
+        // ✅ Safely extract Client ID (check various possible locations)
+        const currentClientId =
+          userToEdit.clientId ||
+          userToEdit.client?.id ||
+          userToEdit.organizationId ||
+          '';
+
+        // Safely extract Role
+        let roleVal = '';
+        if (Array.isArray(userToEdit.roles) && userToEdit.roles.length > 0) {
+          roleVal = userToEdit.roles[0].name || userToEdit.roles[0];
+        } else if (userToEdit.role) {
+          roleVal = userToEdit.role;
+        }
 
         setFormData({
-          id: userToEdit.id,
-          username: userToEdit.username,
-          email: userToEdit.email,
-          firstName: userToEdit.firstName,
-          lastName: userToEdit.lastName,
+          username: userToEdit.username || '',
+          email: userToEdit.email || '',
+          firstName: userToEdit.firstName || '',
+          lastName: userToEdit.lastName || '',
           phoneNumber: userToEdit.phoneNumber || '',
-          department: userToEdit.department || '',
+          jobTitle: userToEdit.jobTitle || '',
           password: '',
-          isActive: userToEdit.isActive,
-          roles: userToEdit.roles || [],
-          selectedRole: currentRole
+          isActive: userToEdit.isActive !== false,
+          role: roleVal,
+          clientId: currentClientId.toString() // ✅ Set clientId
         });
       } else {
+        // Reset
         setFormData({
           username: '',
           email: '',
           firstName: '',
           lastName: '',
           phoneNumber: '',
-          department: '',
+          jobTitle: '',
           password: '',
           isActive: true,
-          roles: [],
-          selectedRole: ''
+          role: '',
+          clientId: '' // ✅ Reset clientId
         });
         setIsResettingPassword(true);
       }
@@ -134,33 +152,47 @@ export function UserFormDialog({ open, onOpenChange, userToEdit, onSubmit }: Use
     const isCreateMode = !userToEdit;
     const shouldValidatePassword = isCreateMode || isResettingPassword;
 
-    if (shouldValidatePassword && !formData.password) {
-      toast({ variant: "destructive", title: "Error", description: "Password is required" });
-      return;
+    if (shouldValidatePassword) {
+      if (!formData.password) {
+        toast({ variant: "destructive", title: "Error", description: "Password is required" });
+        return;
+      }
+      if (formData.password !== confirmPassword) {
+        toast({ variant: "destructive", title: "Error", description: "Passwords do not match" });
+        return;
+      }
     }
-    if (shouldValidatePassword && formData.password !== confirmPassword) {
-      toast({ variant: "destructive", title: "Error", description: "Passwords do not match" });
-      return;
-    }
-    if (!formData.selectedRole) {
+    if (!formData.role) {
       toast({ variant: "destructive", title: "Error", description: "Role is required" });
       return;
     }
 
     setLoading(true);
     try {
-      const payload: CreateUpdateUserRequest = {
-        ...formData,
-        // Ensure role is sent as a single-item array, formatted correctly
-        roles: [formData.selectedRole],
-        fullName: `${formData.firstName} ${formData.lastName}`
+      // ✅ Construct Clean Payload with 'clientId'
+      const payload: UserDTO = {
+        username: formData.username,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        jobTitle: formData.jobTitle,
+        isActive: formData.isActive,
+        role: formData.role,
+
+        // ✅ Send 'clientId'
+        clientId: formData.clientId ? Number(formData.clientId) : undefined
       };
 
-      // Debugging: Log payload to see what's being sent
-      console.log("Submitting User Update:", payload);
+      if (shouldValidatePassword) {
+        payload.password = formData.password;
+      }
 
-      if (!shouldValidatePassword) delete payload.password;
-      delete (payload as any).selectedRole;
+      if (userToEdit?.id) {
+        payload.id = userToEdit.id;
+      }
+
+      console.log("Submitting Payload:", payload);
 
       await onSubmit(payload);
       onOpenChange(false);
@@ -176,17 +208,12 @@ export function UserFormDialog({ open, onOpenChange, userToEdit, onSubmit }: Use
     return dir === 'rtl' ? 'إضافة مستخدم جديد' : 'Add New User';
   };
 
-  const getDialogIcon = () => {
-    if (userToEdit) return <Edit className="w-5 h-5 text-orange-600" />;
-    return <UserPlus className="w-5 h-5 text-green-600" />;
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]" dir={dir}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {getDialogIcon()}
+            {userToEdit ? <Edit className="w-5 h-5 text-orange-600" /> : <UserPlus className="w-5 h-5 text-green-600" />}
             {getDialogTitle()}
           </DialogTitle>
         </DialogHeader>
@@ -213,15 +240,25 @@ export function UserFormDialog({ open, onOpenChange, userToEdit, onSubmit }: Use
             </div>
           </div>
 
-          {/* Username */}
-          <div className="space-y-2">
-            <Label>{dir === 'rtl' ? 'اسم المستخدم' : 'Username'}</Label>
-            <Input
-              required
-              disabled={!!userToEdit?.id}
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            />
+          {/* Username & Job Title */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{dir === 'rtl' ? 'اسم المستخدم' : 'Username'}</Label>
+              <Input
+                required
+                disabled={!!userToEdit?.id}
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{dir === 'rtl' ? 'المسمى الوظيفي' : 'Job Title'}</Label>
+              <Input
+                value={formData.jobTitle}
+                onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                placeholder="e.g. Senior Consultant"
+              />
+            </div>
           </div>
 
           {/* Contact */}
@@ -244,14 +281,13 @@ export function UserFormDialog({ open, onOpenChange, userToEdit, onSubmit }: Use
             </div>
           </div>
 
-          {/* Role & Organization */}
+          {/* Role & Client (Organization) */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{dir === 'rtl' ? 'الدور الوظيفي' : 'Role'}</Label>
               <Select
-                key={formData.selectedRole}
-                value={formData.selectedRole}
-                onValueChange={(val) => setFormData({ ...formData, selectedRole: val })}
+                value={formData.role}
+                onValueChange={(val) => setFormData({ ...formData, role: val })}
                 required
               >
                 <SelectTrigger>
@@ -269,30 +305,22 @@ export function UserFormDialog({ open, onOpenChange, userToEdit, onSubmit }: Use
 
             <div className="space-y-2">
               <Label>{dir === 'rtl' ? 'المؤسسة' : 'Organization'}</Label>
-              {clientOptions.length > 0 ? (
-                <Select
-                  key={formData.department}
-                  value={formData.department}
-                  onValueChange={(val) => setFormData({ ...formData, department: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={dir === 'rtl' ? 'اختر المؤسسة' : 'Select Organization'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientOptions.map((client) => (
-                      <SelectItem key={client.id} value={client.name}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder={dir === 'rtl' ? 'اسم المؤسسة' : 'Organization Name'}
-                />
-              )}
+              <Select
+                // ✅ Use clientId state
+                value={formData.clientId}
+                onValueChange={(val) => setFormData({ ...formData, clientId: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={dir === 'rtl' ? 'اختر المؤسسة' : 'Select Organization'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientOptions.map((client) => (
+                    <SelectItem key={client.id} value={client.id.toString()}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -311,14 +339,14 @@ export function UserFormDialog({ open, onOpenChange, userToEdit, onSubmit }: Use
               </div>
             )}
 
-            {isResettingPassword && (
+            {(isResettingPassword || !userToEdit) && (
               <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="space-y-2">
                   <Label>{dir === 'rtl' ? 'كلمة المرور الجديدة' : 'New Password'}</Label>
                   <Input
                     type="password"
                     required
-                    value={formData.password || ''}
+                    value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   />
                 </div>

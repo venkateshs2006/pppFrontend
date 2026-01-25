@@ -17,68 +17,86 @@ import {
   Calendar,
   User,
   Building2,
-  Tag,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  Trash2,
+  MoreVertical,
+  Edit
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CreateTicketModal } from './CreateTicketModal';
+import { useToast } from '@/components/ui/use-toast';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-// --- Interfaces matching Backend DTOs ---
 const token = localStorage.getItem('accessToken');
-// Matches public class TicketCommentDTO
-interface TicketComment {
-  id: string;
-  ticketId: string;
-  userId: number;
-  name: string;     // Author Name
-  role: string;     // Author Role
-  avatar: string;   // Author Initials/Avatar
-  comment: string;  // The actual message content
-  isInternal: boolean;
-  createdAt: string;
+
+// --- 1. Updated Interfaces to match JSON ---
+
+interface TicketResponseAuthor {
+  name: string;
+  role: string;
+  avatar: string;
 }
 
-// Matches TicketDTO
+interface TicketComment {
+  id: string;
+  author: TicketResponseAuthor; // Nested object in JSON
+  message: string;              // 'message' instead of 'comment'
+  timestamp: string;            // 'timestamp' instead of 'createdAt'
+}
+
+interface TicketProject {
+  id: string;
+  name: string;
+  nameEn: string;
+}
+
+interface TicketUser {
+  id: string;
+  name: string;
+  role: string;
+  avatar: string;
+}
+
 interface Ticket {
   id: string;
   title: string;
+  titleEn: string;
   description: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'WAITING_RESPONSE';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  category?: string;
-  project?: {
-    id: string;
-    titleEn: string;
-    titleAr: string;
-  };
-  createdBy?: {
-    id: number;
-    name: string;
-    avatar?: string;
-    organization?: string;
-  };
-  assignedTo?: {
-    id: number;
-    name: string;
-    role?: string;
-    avatar?: string;
-  };
+  descriptionEn: string;
+  // API returns lowercase, we allow string to be safe
+  status: string;
+  priority: string;
+  category: string;
+
+  project?: TicketProject;
+
+  // API returns flat fields for creator
+  createdById: number;
+  createdByName: string;
+
+  assignedTo?: TicketUser;
+
   createdAt: string;
   updatedAt: string;
   dueDate?: string;
-  // This matches the list of TicketCommentDTOs returned by the API
   responses?: TicketComment[];
   attachments?: string[];
   tags?: string[];
 }
 
 export function TicketsPage() {
-  const { user, userProfile, hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { t, dir } = useLanguage();
+  const { toast } = useToast();
 
-  // State
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,8 +105,8 @@ export function TicketsPage() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [newResponse, setNewResponse] = useState('');
   const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // --- API: Fetch Tickets ---
   const fetchTickets = async () => {
     setLoading(true);
     try {
@@ -104,13 +122,10 @@ export function TicketsPage() {
         const ticketsList = Array.isArray(data) ? data : (data.data || []);
         setTickets(ticketsList);
 
-        // If a ticket is currently selected, update its data to show new comments/status
         if (selectedTicket) {
           const updatedSelected = ticketsList.find((t: Ticket) => t.id === selectedTicket.id);
           if (updatedSelected) setSelectedTicket(updatedSelected);
         }
-      } else {
-        console.error("Failed to fetch tickets");
       }
     } catch (error) {
       console.error("Error fetching tickets:", error);
@@ -121,25 +136,80 @@ export function TicketsPage() {
 
   useEffect(() => {
     fetchTickets();
-  }, [token]); // Add token as dep
+  }, []);
 
-  // --- API: Send Comment ---
+  const handleDeleteTicket = async (ticketId: string) => {
+    if (!window.confirm(dir === 'rtl' ? 'هل أنت متأكد من حذف هذه التذكرة؟' : 'Are you sure you want to delete this ticket?')) {
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        toast({ title: dir === 'rtl' ? 'تم الحذف بنجاح' : 'Ticket deleted successfully', variant: 'default' });
+        setTickets(prev => prev.filter(t => t.id !== ticketId));
+        if (selectedTicket?.id === ticketId) {
+          setSelectedTicket(null);
+        }
+      } else {
+        toast({ title: dir === 'rtl' ? 'فشل الحذف' : 'Failed to delete ticket', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error("Error deleting ticket:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleStatusChange = async (ticketId: string, newStatus: string) => {
+    setIsUpdating(true);
+    try {
+      // Backend expects lowercase usually if it sends lowercase, 
+      // or uppercase if it's an Enum. Let's send what the UI selects (Uppercase) 
+      // or convert based on your backend needs.
+      const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}`, {
+        method: 'PATCH', // Changed from PATCH
+        // const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}`, {
+        //   method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        toast({ title: dir === 'rtl' ? 'تم تحديث الحالة' : 'Status updated successfully', variant: 'default' });
+        await fetchTickets();
+      } else {
+        toast({ title: dir === 'rtl' ? 'فشل التحديث' : 'Failed to update status', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleSendResponse = async () => {
     if (!newResponse.trim() || !selectedTicket) return;
 
-    // Construct payload matching TicketCommentDTO
-    // Note: ticketId is passed in path, but usually API expects fields like userId in body for Service logic
     const commentPayload = {
+      // ✅ FIX: Change 'message' back to 'comment' to match Backend DTO
       comment: newResponse,
       userId: user.id,
       role: user.role,
-      avatar: 'U',// Important: Send current user ID
-      isInternal: true,       // Default value
-      // ticketId: selectedTicket.id -- Optional if backend relies on PathVariable, but good for completeness if DTO has it
+      avatar: 'U',
+      isInternal: true,
     };
-    console.log(commentPayload);
-    console.log(userProfile);
-    console.log(user);
+
     try {
       const response = await fetch(`${API_BASE_URL}/tickets/${selectedTicket.id}/comments`, {
         method: 'POST',
@@ -152,17 +222,18 @@ export function TicketsPage() {
 
       if (response.ok) {
         setNewResponse('');
-        // Re-fetch tickets to get the updated list with the new comment
         fetchTickets();
       } else {
-        console.error("Failed to add comment");
+        console.error("Failed to post comment");
+        toast({ variant: "destructive", title: "Error", description: "Failed to post comment" });
       }
     } catch (error) {
       console.error("Error sending comment:", error);
     }
   };
 
-  // --- Logic: Filtering ---
+
+  // --- Filtering ---
   const getFilteredTickets = () => {
     let filtered = tickets;
 
@@ -176,11 +247,12 @@ export function TicketsPage() {
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(ticket => ticket.status === statusFilter);
+      // Compare lowercase to lowercase to be safe
+      filtered = filtered.filter(ticket => ticket.status.toLowerCase() === statusFilter.toLowerCase());
     }
 
     if (priorityFilter !== 'all') {
-      filtered = filtered.filter(ticket => ticket.priority === priorityFilter);
+      filtered = filtered.filter(ticket => ticket.priority.toLowerCase() === priorityFilter.toLowerCase());
     }
 
     return filtered;
@@ -190,6 +262,9 @@ export function TicketsPage() {
 
   // --- Helpers ---
   const getStatusBadge = (status: string) => {
+    // API returns lowercase (e.g., 'open'), map keys need to handle that
+    const normalizedStatus = status ? status.toUpperCase() : 'OPEN';
+
     const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
       OPEN: { label: t('tickets.open'), color: 'bg-red-100 text-red-800', icon: AlertCircle },
       IN_PROGRESS: { label: t('tickets.inProgress'), color: 'bg-blue-100 text-blue-800', icon: Clock },
@@ -198,7 +273,7 @@ export function TicketsPage() {
       CLOSED: { label: t('tickets.closed'), color: 'bg-gray-100 text-gray-800', icon: CheckCircle2 },
     };
 
-    const config = statusConfig[status] || { label: status, color: 'bg-gray-100 text-gray-800', icon: AlertCircle };
+    const config = statusConfig[normalizedStatus] || { label: status, color: 'bg-gray-100 text-gray-800', icon: AlertCircle };
     const Icon = config.icon;
 
     return (
@@ -210,6 +285,8 @@ export function TicketsPage() {
   };
 
   const getPriorityBadge = (priority: string) => {
+    const normalizedPriority = priority ? priority.toUpperCase() : 'MEDIUM';
+
     const priorityConfig: Record<string, { label: string; color: string }> = {
       LOW: { label: t('tickets.low'), color: 'bg-green-100 text-green-800' },
       MEDIUM: { label: t('tickets.medium'), color: 'bg-yellow-100 text-yellow-800' },
@@ -217,7 +294,7 @@ export function TicketsPage() {
       URGENT: { label: t('tickets.urgent'), color: 'bg-red-100 text-red-800' },
     };
 
-    const config = priorityConfig[priority] || { label: priority, color: 'bg-gray-100 text-gray-800' };
+    const config = priorityConfig[normalizedPriority] || { label: priority, color: 'bg-gray-100 text-gray-800' };
     return (
       <Badge variant="outline" className={config.color}>
         {config.label}
@@ -234,40 +311,75 @@ export function TicketsPage() {
 
   const stats = {
     total: filteredTickets.length,
-    open: filteredTickets.filter(t => t.status === 'OPEN').length,
-    inProgress: filteredTickets.filter(t => t.status === 'IN_PROGRESS').length,
-    resolved: filteredTickets.filter(t => t.status === 'RESOLVED').length,
-    urgent: filteredTickets.filter(t => t.priority === 'URGENT').length,
+    open: filteredTickets.filter(t => t.status.toLowerCase() === 'open').length,
+    inProgress: filteredTickets.filter(t => t.status.toLowerCase() === 'in_progress').length,
+    resolved: filteredTickets.filter(t => t.status.toLowerCase() === 'resolved').length,
+    urgent: filteredTickets.filter(t => t.priority.toLowerCase() === 'urgent').length,
   };
 
   // --- View: Single Ticket Detail ---
   if (selectedTicket) {
     return (
       <div className="space-y-6 p-6" dir={dir}>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Button variant="outline" onClick={() => setSelectedTicket(null)}>
               <ArrowRight className="w-4 h-4" />
               {dir === 'rtl' ? 'العودة للقائمة' : 'Back to List'}
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{selectedTicket.title}</h1>
+              {/* Using titleEn or title based on language or JSON data */}
+              <h1 className="text-2xl font-bold text-gray-900">{dir === 'rtl' ? (selectedTicket.title || selectedTicket.titleEn) : selectedTicket.titleEn}</h1>
               <p className="text-gray-600">#{selectedTicket.id.substring(0, 8)} - {selectedTicket.category || 'General'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(selectedTicket.status)}
-            {getPriorityBadge(selectedTicket.priority)}
+
+          <div className="flex items-center gap-3">
+            {hasPermission('tickets.edit') ? (
+              <Select
+                disabled={isUpdating}
+                // Ensure value matches one of the SelectItem values (uppercase)
+                value={selectedTicket.status.toUpperCase()}
+                onValueChange={(val) => handleStatusChange(selectedTicket.id, val)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OPEN">{t('tickets.open')}</SelectItem>
+                  <SelectItem value="IN_PROGRESS">{t('tickets.inProgress')}</SelectItem>
+                  <SelectItem value="WAITING_RESPONSE">{t('tickets.waitingResponse')}</SelectItem>
+                  <SelectItem value="RESOLVED">{t('tickets.resolved')}</SelectItem>
+                  <SelectItem value="CLOSED">{t('tickets.closed')}</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              getStatusBadge(selectedTicket.status)
+            )}
+
+            {hasPermission('tickets.delete') && (
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={() => handleDeleteTicket(selectedTicket.id)}
+                disabled={isUpdating}
+                title={dir === 'rtl' ? 'حذف' : 'Delete'}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Description Card */}
             <Card>
               <CardHeader><CardTitle>{dir === 'rtl' ? 'تفاصيل الطلب' : 'Request Details'}</CardTitle></CardHeader>
               <CardContent>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedTicket.description}</p>
+                {/* Use descriptionEn or description */}
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {dir === 'rtl' ? selectedTicket.description : selectedTicket.descriptionEn}
+                </p>
                 {selectedTicket.tags && selectedTicket.tags.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {selectedTicket.tags.map((tag, idx) => (
@@ -278,7 +390,6 @@ export function TicketsPage() {
               </CardContent>
             </Card>
 
-            {/* Conversation Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -287,8 +398,7 @@ export function TicketsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* List Comments */}
-                {selectedTicket.responses.map((comment) => (
+                {selectedTicket.responses?.map((comment) => (
                   <div key={comment.id} className="flex gap-3 p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <Avatar className="w-8 h-8">
                       <AvatarFallback className="bg-blue-100 text-blue-600 text-xs font-bold">
@@ -297,24 +407,18 @@ export function TicketsPage() {
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{comment.author.name || 'Unknown User'}</span>
-                        {comment.author.role && (
-                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-5">
-                            {comment.author.role}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-gray-500 ml-auto">
-                          {formatDate(comment.createdAt)}
-                        </span>
+                        {/* 2. Updated accessors for nested author object */}
+                        <span className="font-medium text-sm">{comment.author.name || 'Unknown'}</span>
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 h-5">{comment.author.role}</Badge>
+                        {/* 3. Updated accessor for timestamp */}
+                        <span className="text-xs text-gray-500 ml-auto">{formatDate(comment.timestamp)}</span>
                       </div>
-                      <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">
-                        {comment.message}
-                      </p>
+                      {/* 4. Updated accessor for message */}
+                      <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{comment.message}</p>
                     </div>
                   </div>
                 ))}
 
-                {/* Add Comment Input */}
                 <div className="border-t pt-4 mt-6">
                   <div className="space-y-3">
                     <Textarea
@@ -336,7 +440,6 @@ export function TicketsPage() {
             </Card>
           </div>
 
-          {/* Sidebar Info */}
           <div className="space-y-6">
             <Card>
               <CardHeader><CardTitle>{dir === 'rtl' ? 'معلومات التذكرة' : 'Ticket Information'}</CardTitle></CardHeader>
@@ -344,16 +447,20 @@ export function TicketsPage() {
                 <div className="flex items-center gap-3">
                   <User className="w-4 h-4 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium">{selectedTicket.createdBy?.name || 'Unknown'}</p>
+                    {/* 5. Updated accessor for flat createdByName */}
+                    <p className="text-sm font-medium">{selectedTicket.createdByName || 'Unknown'}</p>
                     <p className="text-xs text-gray-600">{dir === 'rtl' ? 'مقدم الطلب' : 'Requester'}</p>
                   </div>
                 </div>
 
+                {/* 6. Updated accessor for Project Name */}
                 {selectedTicket.project && (
                   <div className="flex items-center gap-3">
                     <Building2 className="w-4 h-4 text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium">{dir === 'rtl' ? selectedTicket.project.titleAr : selectedTicket.project.titleEn}</p>
+                      <p className="text-sm font-medium">
+                        {dir === 'rtl' ? (selectedTicket.project.name || selectedTicket.project.nameEn) : selectedTicket.project.nameEn}
+                      </p>
                       <p className="text-xs text-gray-600">{dir === 'rtl' ? 'المشروع' : 'Project'}</p>
                     </div>
                   </div>
@@ -475,7 +582,6 @@ export function TicketsPage() {
         </CardContent>
       </Card>
 
-      {/* List */}
       <div className="space-y-4">
         {loading ? (
           <div className="text-center py-10 text-gray-500">{dir === 'rtl' ? 'جاري التحميل...' : 'Loading...'}</div>
@@ -488,30 +594,63 @@ export function TicketsPage() {
           </Card>
         ) : (
           filteredTickets.map((ticket) => (
-            <Card key={ticket.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedTicket(ticket)}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
+            <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6 relative">
+
+                {hasPermission('tickets.delete') && (
+                  <div className="absolute top-4 right-4 z-10">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="text-red-600 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTicket(ticket.id);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          {dir === 'rtl' ? 'حذف' : 'Delete'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
+
+                <div
+                  className="flex items-start justify-between cursor-pointer"
+                  onClick={() => setSelectedTicket(ticket)}
+                >
                   <div className="flex items-start gap-4 flex-1">
                     <Avatar className="w-10 h-10">
-                      <AvatarFallback className="bg-blue-100 text-blue-600">{ticket.createdBy?.name?.substring(0, 2) || 'TK'}</AvatarFallback>
+                      {/* 7. Updated fallback logic for flat createdByName */}
+                      <AvatarFallback className="bg-blue-100 text-blue-600">
+                        {ticket.createdByName ? ticket.createdByName.substring(0, 2).toUpperCase() : 'TK'}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h3 className="font-semibold text-lg">{ticket.title}</h3>
+                          <h3 className="font-semibold text-lg">{dir === 'rtl' ? (ticket.title || ticket.titleEn) : ticket.titleEn}</h3>
                           <p className="text-sm text-gray-600">#{ticket.id.substring(0, 8)}</p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mr-8">
                           {getStatusBadge(ticket.status)}
                           {getPriorityBadge(ticket.priority)}
                         </div>
                       </div>
-                      <p className="text-gray-600 text-sm line-clamp-2">{ticket.description}</p>
+                      <p className="text-gray-600 text-sm line-clamp-2">
+                        {dir === 'rtl' ? ticket.description : ticket.descriptionEn}
+                      </p>
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                         {ticket.project && (
                           <div className="flex items-center gap-1">
                             <Building2 className="w-3 h-3" />
-                            <span>{dir === 'rtl' ? ticket.project.titleAr : ticket.project.titleEn}</span>
+                            <span>{dir === 'rtl' ? (ticket.project.name || ticket.project.nameEn) : ticket.project.nameEn}</span>
                           </div>
                         )}
                         <div className="flex items-center gap-1">
